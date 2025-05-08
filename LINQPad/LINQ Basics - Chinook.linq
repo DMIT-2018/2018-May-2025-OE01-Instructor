@@ -33,3 +33,23 @@ Albums.Where(x => x.ReleaseLabel.StartsWith("A") && x.Title.StartsWith("A"))
 //Remember to use Brackets, same as SQL when needed
 Albums.Where(x => (x.ReleaseLabel.StartsWith("A") && x.Title.StartsWith("A")) || (x.ReleaseLabel.StartsWith("P") && x.Title.StartsWith("P")))
 		.Select(x => x.Title).Dump();
+		
+//ORDERING/SORTING Examples
+//Ordering Ascending
+Albums.Where(x => x.ReleaseYear >= 1990 && x.ReleaseYear < 2000)
+	.OrderBy(x => x.ReleaseYear)
+	.ThenBy(x => x.Title)
+	.Dump();
+
+//Ordering Descending
+Albums.Where(x => x.ReleaseYear >= 1990 && x.ReleaseYear < 2000)
+	.OrderByDescending(x => x.ReleaseYear)
+	.ThenByDescending(x => x.Title)
+	.Dump();
+
+//Ordering Mixed
+Albums.Where(x => x.ReleaseYear >= 1990 && x.ReleaseYear < 2000)
+	.OrderByDescending(x => x.ReleaseYear)
+	.ThenBy(x => x.Title)
+	.Dump();
+	
