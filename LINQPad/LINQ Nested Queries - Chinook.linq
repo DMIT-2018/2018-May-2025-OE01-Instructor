@@ -46,12 +46,13 @@ Artists
 					.ToList()
 	}).Dump("Anonymous Results");
 
+//Change our Nested Query to Strongly Typed.
 Artists
-	.Select(x => new
+	.Select(x => new ArtistView
 	{
 		Artist = x.Name,
 		Albums = x.Albums
-					.Select(a => new
+					.Select(a => new AlbumView
 					{
 						Album = a.Title,
 						Label = a.ReleaseLabel,
@@ -59,4 +60,23 @@ Artists
 					})
 					.OrderBy(a => a.Album)
 					.ToList()
-	}).Dump();
+	})
+	.ToList()
+	.Dump("Strongly Typed");
+
+public class ArtistView
+{
+	public string Artist { get; set; }
+	//All Lists (Collections) should default to an empty collection
+	//This prevents any errors if no data is provided
+		//Common error is the list is set to null (null kinda sucks)
+	//We can always check if there is any data in a collection
+	//with methods like .Count()
+	public List<AlbumView> Albums { get; set; } = [];
+}
+public class AlbumView
+{
+	public string Album { get; set; }
+	public string Label { get; set; }
+	public int Year { get; set; }
+}
