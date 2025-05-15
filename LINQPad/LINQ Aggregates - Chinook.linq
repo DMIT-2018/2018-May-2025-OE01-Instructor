@@ -14,7 +14,6 @@
 </Query>
 
 //Basic Aggregates
-
 Albums
 	.Select(x => new
 	{
@@ -34,4 +33,18 @@ Albums
 		AvgLength = x.Tracks.Average(x => x.Milliseconds) / 60000,
 		SumOfLengths = x.Tracks.Sum(x => x.Milliseconds) / 60000m
 	}).Dump();
-	
+
+//Random info - Range Notation for strings!
+var testString = "Testing a string thing and seeing if range notation works in LINQPad"[..20];
+testString.Dump();
+
+//Use Terinary operators to make sure there are as many characters as you want with Length
+//If you don't you could get an OutOfRangeException
+var testAgain = "test";
+(testAgain.Length > 20 ? testAgain[..20] : testAgain).Dump();
+
+//Use Range notation to trim the end of a String
+//Example = remove a trailing comma
+var testTrimEnd = "one, two, three, four,";
+
+testTrimEnd[..^1].Dump();
