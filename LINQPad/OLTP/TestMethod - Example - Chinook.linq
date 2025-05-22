@@ -15,21 +15,40 @@
 
 void Main()
 {
-	#region GetArtist_ByID
+	#region GetAlbum_ByID
 	//Valid Data Tests
 	Console.WriteLine("====================");
-	Console.WriteLine("---- Get Artist By ID - Pass ----");
+	Console.WriteLine("---- Get Album By ID - Pass ----");
 	Console.WriteLine("====================");
 	TestGetAlbum_ByID(1).Dump("Pass - Valid ID - Album Found");
 	TestGetAlbum_ByID(1000).Dump("Pass - Valid ID - No Album Found");
 	Console.WriteLine("====================");
-	Console.WriteLine("---- Get Artist By ID - Fail ----");
+	Console.WriteLine("---- Get Album By ID - Fail ----");
 	Console.WriteLine("====================");
 	//rule: Album ID must be > 0
 	//Remember always that 0 is a special case, must always test is separately from
 		//positive or negative numbers
-	TestGetAlbum_ByID(0).Dump("Failure - ArtistID must be > 0 - 0 Test");
-	TestGetAlbum_ByID(-12).Dump("Failure - ArtistID must be > 0 - Negative Test");x
+	TestGetAlbum_ByID(0).Dump("Exception - AlbumID must be > 0 - 0 Test");
+	TestGetAlbum_ByID(-12).Dump("Exception - AlbumID must be > 0 - Negative Test");
+	#endregion
+
+	#region GetAlbum_ByPartialTitle
+	Console.WriteLine("=========================");
+	Console.WriteLine("---- Get Album By Partial Title - Pass ----");
+	Console.WriteLine("=========================");
+	TestGetAlbums_ByPartialTitle("Dance").Dump("Pass - Valid Input - Albums Found");
+	TestGetAlbums_ByPartialTitle("asdSDFAsdf").Dump("Pass - Valid Input - No Albums Found");
+	Console.WriteLine("==========================");
+	Console.WriteLine("---- Get Album By Partial Title - Fail ----");
+	Console.WriteLine("==========================");
+	//rule: Partial Title cannot be null or white space
+	//Check all three potential failures
+	TestGetAlbums_ByPartialTitle("").Dump("Exception - Input Empty String");
+	TestGetAlbums_ByPartialTitle("   ").Dump("Exception - Input White Space");
+	TestGetAlbums_ByPartialTitle(null).Dump("Exception - Input null");
+	//rule: must provide as least three characters to search by
+	TestGetAlbums_ByPartialTitle("dd").Dump("Exception - Input < 3 characters");
+	
 	#endregion
 	
 }
