@@ -15,6 +15,22 @@
 
 void Main()
 {
+	#region GetArtist_ByID
+	//Valid Data Tests
+	Console.WriteLine("====================");
+	Console.WriteLine("---- Get Artist By ID - Pass ----");
+	Console.WriteLine("====================");
+	TestGetAlbum_ByID(1).Dump("Pass - Valid ID - Album Found");
+	TestGetAlbum_ByID(1000).Dump("Pass - Valid ID - No Album Found");
+	Console.WriteLine("====================");
+	Console.WriteLine("---- Get Artist By ID - Fail ----");
+	Console.WriteLine("====================");
+	//rule: Album ID must be > 0
+	//Remember always that 0 is a special case, must always test is separately from
+		//positive or negative numbers
+	TestGetAlbum_ByID(0).Dump("Failure - ArtistID must be > 0 - 0 Test");
+	TestGetAlbum_ByID(-12).Dump("Failure - ArtistID must be > 0 - Negative Test");x
+	#endregion
 	
 }
 
@@ -30,12 +46,42 @@ public AlbumEditView TestGetAlbum_ByID(int albumID) {
 	//This saves kittens - I'm kidding, but it saves you a headache
 	try 
 	{
-		
+		return GetAlbum_ByID(albumID);
+	}
+	//Catch the potential exceptions
+	catch(ArgumentNullException ex)
+	{
+		GetInnerException(ex).Message.Dump();
+	}
+	//We always have a backup of catch(Exception)
+	//This is the generic catch in case something
+	//Unexpected goes wrong
+	catch (Exception ex)
+	{
+		GetInnerException(ex).Message.Dump();
+	}
+	return null; //Ensures we always have a valid return
+				 //Even when there are exceptions thrown
+}
+public List<AlbumEditView> TestGetAlbums_ByPartialTitle(string partialTitle) 
+{
+	try
+	{
+		return GetAlbums_ByPartialTitle(partialTitle);
+	}
+	catch (ArgumentNullException ex)
+	{
+		GetInnerException(ex).Message.Dump();
+	}
+	catch (ArgumentException ex)
+	{
+		GetInnerException(ex).Message.Dump();
 	}
 	catch (Exception ex)
 	{
-		
+		GetInnerException(ex).Message.Dump();
 	}
+	return null;
 }
 #endregion
 
@@ -60,6 +106,32 @@ public AlbumEditView GetAlbum_ByID(int albumID)
 			CountOfTracks = x.Tracks.Count()
 		})
 		.FirstOrDefault();
+}
+//Method to return all albums that contain the provided string in the title
+public List<AlbumEditView> GetAlbums_ByPartialTitle(string partialTitle)
+{
+	//rule: a partial search string must be provided
+	if(string.IsNullOrWhiteSpace(partialTitle))
+		throw new ArgumentNullException("Partial search string is required.");
+	//rule: must provide as least three characters to search by
+	if(partialTitle.Length < 3)
+		throw new ArgumentException("Partial search string must be at least 3 characters long.");
+		
+	return Albums
+				//Make sure for partial string searched you have everything 
+				//In upper or lower case (use the same)
+				.Where(x => x.Title.ToLower().Contains(partialTitle.ToLower()))
+				.Select(x => new AlbumEditView
+				{
+					AlbumID = x.AlbumId,
+					Title = x.Title,
+					ArtistName = x.Artist.Name,
+					ReleaseYear = x.ReleaseYear,
+					Label = x.ReleaseLabel,
+					CountOfTracks = x.Tracks.Count()
+				})
+				.OrderBy(x => x.Title)
+				.ToList();
 }
 #endregion
 #region Support Methods
