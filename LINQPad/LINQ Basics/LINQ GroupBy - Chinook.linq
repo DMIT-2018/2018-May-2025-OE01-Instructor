@@ -116,3 +116,26 @@ Albums
 	.OrderBy(x => x.Year)
 	.ThenBy(x => x.Artist)
 	.Dump();
+
+//Example
+//Without GroupBy
+//Using the Navigational Properties
+Genres
+	.Select(x => new {
+		Genre = x.Name,
+		Albums = x.Tracks.Select(t => t.Album.Title).Distinct().ToList()
+	})
+	.OrderBy(x => x.Genre)
+	.ToList().Dump();
+
+//With GroupBy
+//Remember group by takes more time to return results
+	//if you can do it without a group by consider that a potentially better solution.
+Tracks
+	.GroupBy(x => x.Genre.Name)
+	.Select(x => new {
+		Genre = x.Key,
+		Albums = x.Select(t => t.Album.Title).Distinct().ToList()
+	})
+	.OrderBy(x => x.Genre)
+	.ToList().Dump();
