@@ -22,9 +22,9 @@ void Main()
 	Console.WriteLine("====================");
 	TestGetAlbum_ByID(1).Dump("Pass - Valid ID - Album Found");
 	TestGetAlbum_ByID(1000).Dump("Pass - Valid ID - No Album Found");
-	Console.WriteLine("====================");
-	Console.WriteLine("---- Get Album By ID - Fail ----");
-	Console.WriteLine("====================");
+	Console.WriteLine("========================");
+	Console.WriteLine("---- Get Album By ID - Exception ----");
+	Console.WriteLine("========================");
 	//rule: Album ID must be > 0
 	//Remember always that 0 is a special case, must always test is separately from
 		//positive or negative numbers
@@ -59,7 +59,8 @@ void Main()
 //Make sure whatever method you are testing, you have the same return type
 	//And the test method takes the exact same parameters
 //Name it the same as the method being tested with the prefix Test
-public AlbumEditView TestGetAlbum_ByID(int albumID) {
+public AlbumEditView TestGetAlbum_ByID(int albumID) 
+{
 	//Whenever we call a Service method you MUST call that service method
 	//within a try/catch
 	//This saves kittens - I'm kidding, but it saves you a headache
