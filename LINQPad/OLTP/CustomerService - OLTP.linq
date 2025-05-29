@@ -18,6 +18,7 @@
 
 void Main()
 {
+	#region Get Customers By ID Tests
 	Console.WriteLine("=========================");
 	Console.WriteLine("---- Get Customer By ID - Success Tests");
 	Console.WriteLine("=========================");
@@ -36,6 +37,9 @@ void Main()
 		results1.Errors.Dump("Pass - Get Customer by Invalid ID - 0 ID given");
 	else
 		"Fail - Expected error not produced.".Dump();
+	#endregion
+	
+	#region Get Customers Tests
 	Console.WriteLine("=========================");
 	Console.WriteLine("---- Get Customers - Success Tests");
 	Console.WriteLine("=========================");
@@ -55,10 +59,58 @@ void Main()
 		results4.Value.Dump("Pass - Get Customers by Last Name and phone number - Customers Found");
 	else
 		results4.Errors.Dump("Fail - Error should not be thrown");
-	//GetCustomers("","").Dump();
+	Console.WriteLine("=========================");
+	Console.WriteLine("---- Get Customers - Failure Tests");
+	Console.WriteLine("=========================");
+	var results5 = GetCustomers("","");
+	if (results5.IsFailure)
+		results5.Errors.Dump("Pass - GetCustomers - no values given");
+	else
+		"Fail - Expected error not produced.".Dump();
+	var results6 = GetCustomers("wsdfsdf", "");
+	if (results6.IsFailure)
+		results6.Errors.Dump("Pass - GetCustomers - No customers found by last name");
+	else
+		"Fail - Expected error not produced.".Dump();
+	var results7 = GetCustomers("", "sdfsdf");
+	if (results7.IsFailure)
+		results7.Errors.Dump("Pass - GetCustomers - No customers found by phone number");
+	else
+		"Fail - Expected error not produced.".Dump();
+	#endregion
+
+	#region Get Lookup Values Tests
+	Console.WriteLine("=========================");
+	Console.WriteLine("---- Get Lookup Values - Success Tests");
+	Console.WriteLine("=========================");
+	var results8 = GetLookupValues("Province");
+	if (results8.IsSuccess)
+		results8.Value.Dump("Pass - Get Province Lookup - Values Found");
+	else
+		results8.Errors.Dump("Fail - Error should not be thrown");
+	Console.WriteLine("=========================");
+	Console.WriteLine("---- Get Lookup Values - Failure Tests");
+	Console.WriteLine("=========================");
+	var results9 = GetLookupValues("");
+	if (results9.IsFailure)
+		results9.Errors.Dump("Pass - GetLookupValues - No value provided");
+	else
+		"Fail - Expected error not produced.".Dump();
+	var results10 = GetLookupValues("asdasd");
+	if (results10.IsFailure)
+		results10.Errors.Dump("Pass - GetLookupValues - Invalid Category");
+	else
+		"Fail - Expected error not produced.".Dump();
+	var results11 = GetLookupValues("TestAAAA");
+	if (results11.IsFailure)
+		results11.Errors.Dump("Pass - GetLookupValues - No Values Found");
+	else
+		"Fail - Expected error not produced.".Dump();
+	#endregion
+
+	#region AddEditCustomer Tests
 	
-	//GetLookupValues("Province").Dump();
-	
+	#endregion
 	
 	
 }
@@ -170,15 +222,22 @@ public Result<CustomerEditView> GetCustomer_ByID(int customerID)
 	return result.WithValue(customer);
 }
 
-public List<LookupView> GetLookupValues(string categoryName)
+public Result<List<LookupView>> GetLookupValues(string categoryName)
 {
+	var result = new Result<List<LookupView>>();
 	//rule: categoryName must not be null or whitespace
 	if(string.IsNullOrWhiteSpace(categoryName))
-		throw new ArgumentNullException("Please provide a category name.");
+	{
+		result.AddError(new Error("Missing Information","Please provide a category name."));
+		return result;
+	}
 	//rule: the Lookup category must exist
 	if(!Categories.Any(x => x.CategoryName.ToLower() == categoryName.ToLower()))
-		throw new ArgumentException($"{categoryName} is not a valid lookup category.");
-	return Lookups
+	{
+		result.AddError(new Error("Invalid Category",$"{categoryName} is not a valid lookup category."));
+		return result;
+	}
+	var values = Lookups
 			.Where(x => x.Category.CategoryName.ToLower() == categoryName.ToLower()
 					&& !x.RemoveFromViewFlag)
 			.Select(x => new LookupView
@@ -189,6 +248,122 @@ public List<LookupView> GetLookupValues(string categoryName)
 			})
 			.OrderBy(x => x.Name)
 			.ToList();
+	//If returning a list then check if the count is <= 0
+	//If returning a single record, check if nothing was returned by looking for null
+	if(values.Count <= 0)
+	{
+		result.AddError(new Error("No Lookup Values", $"No lookup values found for category {categoryName}."));
+		return result;
+	}
+	//return the results with the value(s) from the database LINQ query 
+	return result.WithValue(values);
+}
+
+public Result<CustomerEditView> AddEditCustomer(CustomerEditView editCustomer)
+{
+	//Create a Result Container that will hold either a list of errors
+	//or the successfully edited CustomerEditView
+	var result = new Result<CustomerEditView>();
+	
+	//rule: editCustomer cannot be null
+	if(editCustomer == null)
+	{
+		result.AddError(new Error("Missing Information", "No customer was provided"));
+		//We need to exit the method because we have nothing to update or add
+		return result;
+	}
+	
+	//rule: first name, last name, phone number, and email
+		//are required (not empty)
+	//We will collect all errors, to tell the user everything that is incorrect at once.
+	if(string.IsNullOrWhiteSpace(editCustomer.FirstName))
+		result.AddError(new Error("Missing Information", "First name is required"));
+	if(string.IsNullOrWhiteSpace(editCustomer.LastName))
+		result.AddError(new Error("Missing Information", "Last name is required"));
+	if (string.IsNullOrWhiteSpace(editCustomer.Phone))
+		result.AddError(new Error("Missing Information", "Phone number is required"));
+	if (string.IsNullOrWhiteSpace(editCustomer.Email))
+		result.AddError(new Error("Missing Information", "Email is required"));
+	
+	//rule: first name, last name, and phone number cannot be duplicated
+		//(found more than once)
+	//first: check if this is an add or edit
+		//we check by seeing if the provided CustomerID is 0 or not
+		//if it is not 0 then it is an edit and we don't need to check this.
+		//if it is 0 that means the record doesn't exist in the database yet.
+	if(editCustomer.CustomerID == 0)
+	{
+		//second: search the database for any matching records
+		bool customerExists = Customers
+								.Any(x => x.FirstName.ToLower() == editCustomer.FirstName.ToLower()
+										&& x.LastName.ToLower() == editCustomer.LastName.ToLower()
+										&& x.Phone == editCustomer.Phone);
+		//third: check if customerExists is true, if so a customer was found with the provided info
+		if (customerExists)
+			results.AddError(new Error("Existing Customer Data", $"A customer with the name {editCustomer.FirstName} {editCustomer.LastName} and the phone number {editCustomer.Phone} already exists in the database and cannot be entered again"));
+	}
+	
+	//check if there are any errors at this point (before adding or editing the data)
+	//and return the errors if any
+	if(result.IsFailure)
+		return result;
+		
+	//If no errors try and retrieve the customer from the database
+	//This is not the ViewModel, this is the actual database record
+	//we need to retrieve the data as the entity
+	Customer customer = Customers
+							.Where(x => x.CustomerID == editCustomer.CustomerID)
+							.FirstOrDefault();
+	//check if the results are null
+	//if null create a new customer record
+	if(customer == null)
+		customer = new Customer();
+	
+	//Edit the database entity record values or the new customer entity values
+	//If edit, will update any data with the new provided data
+	//if new, will add the new provided to the new record.
+	customer.FirstName = editCustomer.FirstName;
+	customer.LastName= editCustomer.LastName;
+	customer.Address1 = editCustomer.Address1;
+	customer.Address2 = editCustomer.Address2;
+	customer.City = editCustomer.City;
+	customer.ProvStateID = editCustomer.ProvStateID;
+	customer.CountryID = editCustomer.CountryID;
+	customer.PostalCode = editCustomer.PostalCode;
+	customer.Phone = editCustomer.Phone;
+	customer.Email = editCustomer.Email;
+	customer.StatusID = editCustomer.StatusID;
+	customer.RemoveFromViewFlag = editCustomer.RemoveFromViewFlag;
+	
+	//last check if new customer
+	//remember this is only local changes!
+		//nothing is saved to the database yet
+	if(customer.CustomerID == 0)
+		//if new add the record
+		Customers.Add(customer);
+	else
+		//if not update the record
+		Customers.Update(customer);
+	try
+	{
+		//Save the changes to the database
+		SaveChanges();
+		//Use the method you already coded
+		//Make sure to use the database entity ID field for this
+			//Why? If it was a new data entry, the editCustomer CustomerID will still be 0
+			//But, the customer.CustomerID will have the new database assigned CustomerID
+			//THIS IS A VERY VERY COMMON MISTAKE TO MAKE
+				//NOW YOU KNOW :)
+		return GetCustomer_ByID(customer.CustomerID);
+	}
+	catch(Exception ex)
+	{
+		//if something goes wrong is saving the changes
+		//we MUST clear any staged changes to the database
+		ChangeTracker.Clear();
+		result.AddError(new Error("Error Saving Changes", ex.InnerException.Message));
+		return result;
+	}
 }
 #endregion
 
