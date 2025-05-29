@@ -18,13 +18,49 @@
 
 void Main()
 {
-	GetCustomers("","444").Dump();
+	Console.WriteLine("=========================");
+	Console.WriteLine("---- Get Customer By ID - Success Tests");
+	Console.WriteLine("=========================");
+	var results = GetCustomer_ByID(360);
+	//If we expect it to pass and it is Success, then the test passed.
+	if(results.IsSuccess)
+		results.Value.Dump("Pass - Get Customer by valid ID - Customer Found");
+	else
+		results.Errors.Dump("Fail - Errors should not be thrown");
+	Console.WriteLine("=========================");
+	Console.WriteLine("---- Get Customer By ID - Failure Tests");
+	Console.WriteLine("=========================");
+	var results1 = GetCustomer_ByID(0);
+	//If we expect it to fail and IsFailure = true, then the test passed.
+	if(results1.IsFailure)
+		results1.Errors.Dump("Pass - Get Customer by Invalid ID - 0 ID given");
+	else
+		"Fail - Expected error not produced.".Dump();
+	Console.WriteLine("=========================");
+	Console.WriteLine("---- Get Customers - Success Tests");
+	Console.WriteLine("=========================");
+	var results2 = GetCustomers("","444");
+	if(results2.IsSuccess)
+		results2.Value.Dump("Pass - Get Customers by Phone Number - Customers Found");
+	else
+		results2.Errors.Dump("Fail - Error should not be thrown");
+
+	var results3 = GetCustomers("Smith", "");
+	if (results3.IsSuccess)
+		results3.Value.Dump("Pass - Get Customers by Last Name - Customers Found");
+	else
+		results3.Errors.Dump("Fail - Error should not be thrown");
+	var results4 = GetCustomers("Smith", "444");
+	if (results3.IsSuccess)
+		results4.Value.Dump("Pass - Get Customers by Last Name and phone number - Customers Found");
+	else
+		results4.Errors.Dump("Fail - Error should not be thrown");
+	//GetCustomers("","").Dump();
 	
-	GetCustomer_ByID(360).Dump();
+	//GetLookupValues("Province").Dump();
 	
-	GetLookupValues("Province").Dump();
 	
-	GetCustomer_ByID(0).Dump();
+	
 }
 
 // You can define other methods, fields, classes and namespaces here
@@ -32,14 +68,20 @@ void Main()
 #endregion
 
 #region Methods
-public List<CustomerSearchView> GetCustomers(string lastName, string phone)
+public Result<List<CustomerSearchView>> GetCustomers(string lastName, string phone)
 {
+	//Result should be given the same type as the expected return type
+	var result = new Result<List<CustomerSearchView>>();
 	//rule: Both last name and phone number cannot be empty
 	if(string.IsNullOrWhiteSpace(lastName) && string.IsNullOrWhiteSpace(phone))
-		throw new ArgumentNullException("Please provide either a last name and/or a phone number");
+	{
+		result.AddError(new Error("Missing Information","Please provide either a last name and/or a phone number"));
+		return result;
+	}
+		
 	
 	//rule: RemoveFromViewFlag cannot be true
-	return Customers
+	var customers = Customers
 		.Where(x => !x.RemoveFromViewFlag 
 						&&
 				(
@@ -70,8 +112,13 @@ public List<CustomerSearchView> GetCustomers(string lastName, string phone)
 			TotalSales = x.Invoices.Sum(i => i.SubTotal + i.Tax)
 		})
 		.ToList();
-					
-	
+		
+	if(customers.Count <= 0)
+	{
+		result.AddError(new Error("No Customers", "No customer were found."));
+		return result;
+	}
+	return result.WithValue(customers);
 }
 
 public Result<CustomerEditView> GetCustomer_ByID(int customerID)
