@@ -28,6 +28,28 @@ using BYSResults;
 void Main()
 {
 	CodeBehind codeBehind = new CodeBehind(this); // “this” is LINQPad’s auto Context
+	
+	//Fail Tests
+	// Rule: either the last name or phone number must be provided.
+	codeBehind.GetCustomers(string.Empty, string.Empty);
+	codeBehind.ErrorDetails.Dump("either the last name or phone number must be provided.");
+	
+	// rule: either the last name or the phone number must be valid (no search results).
+	codeBehind.GetCustomers("zzzz","999999");
+	codeBehind.ErrorDetails.Dump("either the last name or the phone number must be valid (no search results).");
+	
+	// Pass: both the last name and phone number were provided and valid
+	codeBehind.GetCustomers("Sm","558");
+	codeBehind.Customers.Dump("Pass - Valid last name & phone number.");
+
+	//Pass: last name provided
+	codeBehind.GetCustomers("Sm", string.Empty);
+	codeBehind.Customers.Dump("Pass - Valid last name.");
+
+	//Pass: Phone number provided
+	codeBehind.GetCustomers(string.Empty, "558");
+	codeBehind.Customers.Dump("Pass - Valid phone number.");
+
 }
 
 // ———— PART 2: Code Behind → Code Behind Method ————
