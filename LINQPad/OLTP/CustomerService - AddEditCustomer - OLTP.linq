@@ -113,7 +113,8 @@ public class CodeBehind(TypedDataContext context)
 	// Mock injection of the service into our code-behind.
 	// You will need to refactor this for proper dependency injection.
 	// NOTE: The TypedDataContext must be passed in.
-	private readonly Library CustomerService = new Library(context);
+	private readonly CustomerService CustomerService = new CustomerService(context);
+	private readonly LookupService LookupService = new LookupService(context);
 	#endregion
 
 	#region Fields from Blazor Page Code-Behind
@@ -162,7 +163,7 @@ public class CodeBehind(TypedDataContext context)
 		// wrap the service call in a try/catch to handle unexpected exceptions
 		try
 		{
-			var result = CustomerService.GetLookupValues(categoryName);
+			var result = LookupService.GetLookupValues(categoryName);
 			if (result.IsSuccess)
 				Lookups = result.Value;
 			else
@@ -203,7 +204,7 @@ public class CodeBehind(TypedDataContext context)
 // ———— PART 3: Database Interaction Method → Service Library Method ————
 //	This region contains support methods for testing
 #region Methods
-public class Library
+public class CustomerService
 {
 	#region Data Context Setup
 	// The LINQPad auto-generated TypedDataContext instance used to query and manipulate data.
@@ -212,7 +213,7 @@ public class Library
 	// The TypedDataContext provided by LINQPad for database access.
 	// Store the injected context for use in library methods
 	// NOTE:  This constructor is simular to the constuctor in your service
-	public Library(TypedDataContext context)
+	public CustomerService(TypedDataContext context)
 	{
 		_context = context
 					?? throw new ArgumentNullException(nameof(context));
@@ -265,43 +266,6 @@ public class Library
 
 		//return the result
 		return result.WithValue(customer);
-	}
-
-	public Result<List<LookupView>> GetLookupValues(string categoryName)
-	{
-		var result = new Result<List<LookupView>>();
-		//rule: categoryName must not be null or whitespace
-		if (string.IsNullOrWhiteSpace(categoryName))
-		{
-			result.AddError(new Error("Missing Information", "Please provide a category name."));
-			return result;
-		}
-		//rule: the Lookup category must exist
-		if (!_context.Categories.Any(x => x.CategoryName.ToLower() == categoryName.ToLower()))
-		{
-			result.AddError(new Error("Invalid Category", $"{categoryName} is not a valid lookup category."));
-			return result;
-		}
-		var values = _context.Lookups
-				.Where(x => x.Category.CategoryName.ToLower() == categoryName.ToLower()
-						&& !x.RemoveFromViewFlag)
-				.Select(x => new LookupView
-				{
-					LookupID = x.LookupID,
-					Name = x.Name,
-					RemoveFromViewFlag = x.RemoveFromViewFlag
-				})
-				.OrderBy(x => x.Name)
-				.ToList();
-		//If returning a list then check if the count is <= 0
-		//If returning a single record, check if nothing was returned by looking for null
-		if (values.Count <= 0)
-		{
-			result.AddError(new Error("No Lookup Values", $"No lookup values found for category {categoryName}."));
-			return result;
-		}
-		//return the results with the value(s) from the database LINQ query 
-		return result.WithValue(values);
 	}
 
 	public Result<CustomerEditView> AddEditCustomer(CustomerEditView editCustomer)
@@ -413,9 +377,64 @@ public class Library
 		}
 	}
 }
+
+public class LookupService
+{
+	#region Data Context Setup
+	// The LINQPad auto-generated TypedDataContext instance used to query and manipulate data.
+	private readonly TypedDataContext _context;
+
+	// The TypedDataContext provided by LINQPad for database access.
+	// Store the injected context for use in library methods
+	// NOTE:  This constructor is simular to the constuctor in your service
+	public LookupService(TypedDataContext context)
+	{
+		_context = context
+					?? throw new ArgumentNullException(nameof(context));
+	}
 	#endregion
 
-	// ———— PART 4: View Models → Service Library View Model ————
+	public Result<List<LookupView>> GetLookupValues(string categoryName)
+	{
+		var result = new Result<List<LookupView>>();
+		//rule: categoryName must not be null or whitespace
+		if (string.IsNullOrWhiteSpace(categoryName))
+		{
+			result.AddError(new Error("Missing Information", "Please provide a category name."));
+			return result;
+		}
+		//rule: the Lookup category must exist
+		if (!_context.Categories.Any(x => x.CategoryName.ToLower() == categoryName.ToLower()))
+		{
+			result.AddError(new Error("Invalid Category", $"{categoryName} is not a valid lookup category."));
+			return result;
+		}
+		var values = _context.Lookups
+				.Where(x => x.Category.CategoryName.ToLower() == categoryName.ToLower()
+						&& !x.RemoveFromViewFlag)
+				.Select(x => new LookupView
+				{
+					LookupID = x.LookupID,
+					Name = x.Name,
+					RemoveFromViewFlag = x.RemoveFromViewFlag
+				})
+				.OrderBy(x => x.Name)
+				.ToList();
+		//If returning a list then check if the count is <= 0
+		//If returning a single record, check if nothing was returned by looking for null
+		if (values.Count <= 0)
+		{
+			result.AddError(new Error("No Lookup Values", $"No lookup values found for category {categoryName}."));
+			return result;
+		}
+		//return the results with the value(s) from the database LINQ query 
+		return result.WithValue(values);
+	}
+}
+
+#endregion
+
+// ———— PART 4: View Models → Service Library View Model ————
 	//	This region includes the view models used to 
 //	represent and structure data for the UI.
 #region View Models
