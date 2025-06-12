@@ -28,6 +28,42 @@ using BYSResults;
 void Main()
 {
 	CodeBehind codeBehind = new CodeBehind(this); // “this” is LINQPad’s auto Context
+	
+	#region GetParts
+	//Pass: Parts are returned
+	codeBehind.GetParts();
+	codeBehind.Parts.Dump("Pass - Parts returned");
+	#endregion
+	
+	#region GetCustomerInvoices
+	//Fail
+	// Rule: customer ID must be greater than zero
+	codeBehind.GetCustomerInvoices(0);
+	codeBehind.ErrorDetails.Dump("Customer ID must be greater than zero");
+	
+	// Rule: customer ID must be valid
+	codeBehind.GetCustomerInvoices(10000000);
+	codeBehind.ErrorDetails.Dump("No invoices found for the supplied ID");
+	
+	// Pass: valid customer ID
+	codeBehind.GetCustomerInvoices(1);
+	codeBehind.CustomerInvoices.Dump("Pass - Valid Customer ID");
+	#endregion
+	
+	#region GetInvoice
+	//Fail
+	// Rule: Customer ID and Employee ID must be greater than 0
+	codeBehind.GetInvoice(0, 0, 0);
+	codeBehind.ErrorDetails.Dump("Customer ID and Employee ID must be greater than 0");
+	
+	//Pass - New Invoice
+	codeBehind.GetInvoice(0, 1, 1);
+	codeBehind.Invoice.Dump("Pass - New Invoice");
+	
+	//Pass - Existing Invoice
+	codeBehind.GetInvoice(31, 1, 1);
+	codeBehind.Invoice.Dump("Pass - Existing Invoice");
+	#endregion
 
 }
 
@@ -46,6 +82,7 @@ public class CodeBehind(TypedDataContext context)
 	// You will need to refactor this for proper dependency injection.
 	// NOTE: The TypedDataContext must be passed in.
 	private readonly InvoiceService InvoiceService = new InvoiceService(context);
+	private readonly PartService PartService = new PartService(context);
 	#endregion
 
 	#region Fields from Blazor Page Code-Behind
@@ -55,7 +92,79 @@ public class CodeBehind(TypedDataContext context)
 	private List<string> errorDetails = new();
 	// general error message.
 	private string errorMessage = string.Empty;
-	#endregion
+	#endregion 
+	
+	public List<PartView> Parts = [];
+	public List<InvoiceView> CustomerInvoices = [];
+	public InvoiceView Invoice = default!;
+	
+	public void GetParts()
+	{
+		//Clear the feedback and error messages first
+		errorDetails.Clear();
+		errorMessage = string.Empty;
+		feedbackMessage = string.Empty;
+		
+		try
+		{
+			var result = PartService.GetParts();
+			if(result.IsSuccess)
+				Parts = result.Value;
+			else
+				errorDetails = GetErrorMessages(result.Errors.ToList());
+		}
+		catch (Exception ex)
+		{
+			// capture any exception message for display
+			errorMessage = ex.Message;
+			errorMessage.Dump();
+		}
+	}
+	public void GetCustomerInvoices(int customerID)
+	{
+		//Clear the feedback and error messages first
+		errorDetails.Clear();
+		errorMessage = string.Empty;
+		feedbackMessage = string.Empty;
+
+		try
+		{
+			var result = InvoiceService.GetCustomerInvoices(customerID);
+			if (result.IsSuccess)
+				CustomerInvoices = result.Value;
+			else
+				errorDetails = GetErrorMessages(result.Errors.ToList());
+		}
+		catch (Exception ex)
+		{
+			// capture any exception message for display
+			errorMessage = ex.Message;
+			errorMessage.Dump();
+		}
+	}
+	public void GetInvoice(int invoiceID, int customerID, int employeeID)
+	{
+		//Clear the feedback and error messages first
+		errorDetails.Clear();
+		errorMessage = string.Empty;
+		feedbackMessage = string.Empty;
+
+		try
+		{
+			var result = InvoiceService.GetInvoice(invoiceID,customerID,employeeID);
+			if (result.IsSuccess)
+				Invoice = result.Value;
+			else
+				errorDetails = GetErrorMessages(result.Errors.ToList());
+		}
+		catch (Exception ex)
+		{
+			// capture any exception message for display
+			errorMessage = ex.Message;
+			errorMessage.Dump();
+		}
+	}
+
 
 }
 #endregion
@@ -157,7 +266,19 @@ public class InvoiceService
 							InvoiceDate = x.InvoiceDate,
 							SubTotal = x.SubTotal,
 							Tax = x.Tax,
-							//Add in nested Query to return InvoiceLines
+							InvoiceLines = x.InvoiceLines
+											.Where(i => !i.RemoveFromViewFlag)
+											.Select(i => new InvoiceLineView
+											{
+												InvoiceLineID = i.InvoiceLineID,
+												InvoiceID = i.InvoiceID,
+												PartID = i.PartID,
+												Quantity = i.Quantity,
+												Description = i.Part.Description,
+												Price = i.Price,
+												Taxable = i.Part.Taxable,
+												RemoveFromViewFlag = i.RemoveFromViewFlag
+											}).ToList(),
 							RemoveFromViewFlag = x.RemoveFromViewFlag
 						}).FirstOrDefault();
 			//set the customerID to the customer from the Method call
@@ -178,6 +299,63 @@ public class InvoiceService
 		return result.WithValue(invoice);
 	}
 	
+	public Result<InvoiceView> AddEditInvoice(InvoiceView invoiceView)
+	{
+		var result = new Result<InvoiceView>();
+		
+		#region Business Logic
+		if(invoiceView == null)
+		{
+			result.AddError(new Error("Missing Information", "Please provide an invoice"));
+			//If they give us nothing or do not provide the parameters, just GTFO
+			//There is no need to force your code to go through any additional logic
+			return result;
+		}
+		//rule: customer id must be provided
+		if(invoiceView.CustomerID == 0)
+			result.AddError(new Error("Missing Information", "Please provide a valid customer ID"));
+		//rule: employee id must be provided
+		if (invoiceView.EmployeeID == 0)
+			result.AddError(new Error("Missing Information", "Please provide a valid employee ID"));
+		//rule: there must be invoice lines provided
+		if(invoiceView.InvoiceLines.Count == 0)
+			result.AddError(new Error("Missing Information", "Invoice details are required"));
+			
+		//Once we check the main record, we need to check the child records
+		foreach(var invoiceLine in invoiceView.InvoiceLines)
+		{
+			//rule: for each invoice line, a part must be provided
+			if(invoiceLine.PartID == 0)
+			{
+				result.AddError(new Error("Missing Information", "Missing Part ID"));
+				//if no part was supplied, it time to GTFO
+				//because we cannot proceed with checking the rest of the logic
+				//Because we need to potentially tell the user which part has other errors.
+				return result;
+			}
+			
+			
+			//rule: for each invoice line, the price must be greater than 0
+			if(invoiceLine.Price < 0)
+			{
+				result.AddError(new Error("Invalid Price", $"Part {invoiceLine.Description} has a price that is less than zero"));
+			}
+			//rule: for each invoice line, the quantity cannot be lkess than 1
+			if (invoiceLine.Quantity < 1)
+				result.AddError(new Error("Invalid Quantity", $"Part {invoiceLine.Description} has a quantity that is less than one"));
+		}
+		
+		//Make sure you are outside the foreach loop!
+		// rule: parts cannot be duplicated on more than one line.
+		//List<string> duplicatedParts = invoiceView.InvoiceLines
+		//									.GroupBy(x => x.PartID)
+		//									.Where(x => x.Count() > 1)
+		//									.OrderBy(x => x.Key)
+		//									.Select(x => x.
+		
+		#endregion
+	}
+	
 	//Used by other methods in the Service and not by the front end (web pages) so these can be made Private
 	private string GetFullCustomerName(int customerID)
 	{
@@ -195,9 +373,58 @@ public class InvoiceService
 				.Select(x => $"{x.FirstName} {x.LastName}").FirstOrDefault() ?? string.Empty;
 	}
 }
-#endregion
 
-// ———— PART 4: View Models → Service Library View Model ————
+public class PartService
+{
+	#region Data Context Setup
+	// The LINQPad auto-generated TypedDataContext instance used to query and manipulate data.
+	private readonly TypedDataContext _context;
+
+	// The TypedDataContext provided by LINQPad for database access.
+	// Store the injected context for use in library methods
+	// NOTE:  This constructor is simular to the constuctor in your service
+	public PartService(TypedDataContext context)
+	{
+		_context = context
+					?? throw new ArgumentNullException(nameof(context));
+	}
+	#endregion
+	
+	public Result<List<PartView>> GetParts()
+	{
+		var result = new Result<List<PartView>>();
+		
+		var parts = _context.Parts
+						.Where(x => !x.RemoveFromViewFlag)
+						.Select(p => new PartView
+						{
+							PartID = p.PartID,
+							PartCategoryID = p.PartCategoryID,
+							CategoryName = p.PartCategory.Name,
+							Description = p.Description,
+							Cost = p.Cost,
+							Price = p.Price,
+							ROL = p.ROL,
+							QOH = p.QOH,
+							Taxable = p.Taxable,
+							RemoveFromViewFlag = p.RemoveFromViewFlag
+						})
+						.OrderBy(p => p.CategoryName)
+						.ThenBy(p => p.Description)
+						.ToList();
+						
+		if(parts == null || parts.Count == 0)
+		{
+			result.AddError(new Error("No Records Found", "No parts were found"));
+			return result;
+		}
+		
+		return result.WithValue(parts);
+	}
+}
+	#endregion
+
+	// ———— PART 4: View Models → Service Library View Model ————
 //	This region includes the view models used to 
 //	represent and structure data for the UI.
 #region View Models
@@ -231,6 +458,19 @@ public class InvoiceLineView
 	public bool Taxable { get; set; }
 	//Read-Only Field
 	public decimal ExtentPrice => Price * Quantity;
+	public bool RemoveFromViewFlag { get; set; }
+}
+public class PartView
+{
+	public int PartID { get; set; }
+	public int PartCategoryID { get; set; }
+	public string CategoryName { get; set; }
+	public string Description { get; set; }
+	public decimal Price { get; set; }
+	public decimal Cost { get; set; }
+	public int ROL { get; set; }
+	public int QOH { get; set; }
+	public bool Taxable { get; set; }
 	public bool RemoveFromViewFlag { get; set; }
 }
 #endregion
