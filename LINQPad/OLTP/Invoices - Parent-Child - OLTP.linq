@@ -65,6 +65,45 @@ void Main()
 	codeBehind.Invoice.Dump("Pass - Existing Invoice");
 	#endregion
 
+	#region AddEditInvoice
+	//Create an invoice and test the rules for an invoice
+	//rule: invoiceView must be provided
+	codeBehind.AddEditInvoice(null);
+	codeBehind.ErrorDetails.Dump("Invoice cannot be null");
+	
+	//rule: customer id, employee id, and invoice lines must be provided
+	//Setup a new invoice
+	InvoiceView invoiceView = new();
+	codeBehind.AddEditInvoice(invoiceView);
+	codeBehind.ErrorDetails.Dump("customer id, employee id, and invoice lines must be provided");
+	
+	//update to fix missing values
+	invoiceView.CustomerID = 1;
+	invoiceView.EmployeeID = 1;
+	
+	//create a child record
+	InvoiceLineView invoiceLineView = new();
+	//add the child to the parent record
+	invoiceView.InvoiceLines.Add(invoiceLineView);
+	//rule: for each invoice line, a part must be provided
+	codeBehind.AddEditInvoice(invoiceView);
+	codeBehind.ErrorDetails.Dump("for each invoice line, a part must be provided");
+	
+	// rule: price is less than zero
+	// rule: quantity is less than one
+	
+	// rule: duplicate parts added
+	
+	// Pass: valid new invoice
+	// fix any errors in records
+	
+	// Pass: edit invoice
+	
+	
+	//Edit the created invoice
+	
+	#endregion
+
 }
 
 // ———— PART 2: Code Behind → Code Behind Method ————
@@ -164,7 +203,28 @@ public class CodeBehind(TypedDataContext context)
 			errorMessage.Dump();
 		}
 	}
+	public void AddEditInvoice(InvoiceView invoiceView)
+	{
+		//Clear the feedback and error messages first
+		errorDetails.Clear();
+		errorMessage = string.Empty;
+		feedbackMessage = string.Empty;
 
+		try
+		{
+			var result = InvoiceService.AddEditInvoice(invoiceView);
+			if (result.IsSuccess)
+				Invoice = result.Value;
+			else
+				errorDetails = GetErrorMessages(result.Errors.ToList());
+		}
+		catch (Exception ex)
+		{
+			// capture any exception message for display
+			errorMessage = ex.Message;
+			errorMessage.Dump();
+		}
+	}
 
 }
 #endregion
@@ -304,6 +364,7 @@ public class InvoiceService
 		var result = new Result<InvoiceView>();
 		
 		#region Business Logic
+		//rule: invoiceView must be provided
 		if(invoiceView == null)
 		{
 			result.AddError(new Error("Missing Information", "Please provide an invoice"));
@@ -344,16 +405,126 @@ public class InvoiceService
 			if (invoiceLine.Quantity < 1)
 				result.AddError(new Error("Invalid Quantity", $"Part {invoiceLine.Description} has a quantity that is less than one"));
 		}
-		
+
 		//Make sure you are outside the foreach loop!
 		// rule: parts cannot be duplicated on more than one line.
-		//List<string> duplicatedParts = invoiceView.InvoiceLines
-		//									.GroupBy(x => x.PartID)
-		//									.Where(x => x.Count() > 1)
-		//									.OrderBy(x => x.Key)
-		//									.Select(x => x.
+		List<string> duplicatedParts = invoiceView.InvoiceLines
+											.GroupBy(x => new { x.PartID, x.Description })
+											.Where(x => x.Count() > 1)
+											.OrderBy(x => x.Key.PartID)
+											.Select(x => x.Key.Description)
+											.ToList();
+											
+		if(duplicatedParts.Count > 0)
+		{
+			foreach(var partName in duplicatedParts)
+			{
+				result.AddError(new Error("Duplicate Invoice Line Item", $"Part {partName} can only be added to the invoice once"));
+			}
+		}
 		
+		//exit if we have any errors
+		if(result.IsFailure)
+			return result;
 		#endregion
+		
+		//Retrieve the actual database record (not as a ViewModel)
+		Invoice invoice = _context.Invoices
+							.Where(x => x.InvoiceID == invoiceView.InvoiceID)
+							.FirstOrDefault();
+		//If the invoice doesn't exist, create/initialize it.
+		if(invoice == null)
+		{
+			invoice = new Invoice();
+		}
+		
+		//Update the invoice properties from the supplied view model
+		//Make sure to update any values that are not PKs or FKs
+		invoice.CustomerID = invoiceView.CustomerID;
+		invoice.EmployeeID = invoiceView.EmployeeID;
+		invoice.InvoiceDate = invoiceView.InvoiceDate;
+		//If it is flagged for deletion (logical delete) update the removefromviewflag
+		invoice.RemoveFromViewFlag = invoiceView.RemoveFromViewFlag;
+		
+		//reset the subtotal and tax as we need to update this.
+		invoice.SubTotal = 0;
+		invoice.Tax = 0;
+		
+		//Process updating or adding each invoice line
+		foreach(var invoiceLineView in invoiceView.InvoiceLines)
+		{
+			InvoiceLine invoiceLine = _context.InvoiceLines
+										.Where(x => x.InvoiceLineID == invoiceLineView.InvoiceLineID
+												&& !x.RemoveFromViewFlag)
+										.FirstOrDefault();
+			//If the line item doesn't exist or had been previous deleted, create it
+			if(invoiceLine == null)
+			{
+				invoiceLine = new InvoiceLine();
+				//Only updating the PartID if the record is new
+				//if it exists, we should not change a FK record.
+				invoiceLine.PartID = invoiceLineView.PartID;
+			}
+			//Update the properties from the view Model
+			invoiceLine.Quantity = invoiceLineView.Quantity;
+			invoiceLine.Price = invoiceLineView.Price;
+			//If it flaged for deletion then this will update it.
+			invoiceLine.RemoveFromViewFlag = invoiceLineView.RemoveFromViewFlag;
+			
+			//Check if it is new or existing
+			//If it equals 0 it is new!
+			if(invoiceLine.InvoiceLineID == 0)
+				//Add new line item to the invoice entity (the parent record)
+				//By using the navigational property and adding it to the parent record
+				//When the parent record is saved, the FK (InvoiceID) of the parent record is automatically
+				//	added to our new record.
+				invoice.InvoiceLines.Add(invoiceLine);
+			else
+				//Since the PK is not 0, it is an update!
+				//So we will STAGE (not saved to the database yet) the Update of the record.
+				//	NOTE: DO NOT SAVE ANYTHING TO THE DATABASE YET
+				_context.InvoiceLines.Update(invoiceLine);
+				
+			//If the record is not set to be removed (logical delete) we need
+			//	to update the subtotal and tax
+			if(!invoiceLineView.RemoveFromViewFlag)
+			{
+				invoice.SubTotal += invoiceLine.Quantity * invoiceLine.Price;
+				invoice.Tax += invoiceLineView.Taxable ? invoiceLine.Quantity * invoiceLine.Price * 0.05m : 0;
+			}
+		}
+		
+		//MAKE SURE YOU ARE OUTSIDE THE FOREACH LOOP
+		//Check if the invoice is new or not
+		if(invoice.InvoiceID == 0)
+			//If it is 0 then STAGE add the invoice to the database
+			_context.Invoices.Add(invoice);
+		else
+			//If it is not 0, it is an existing invoice, so STAGE the update
+			_context.Invoices.Update(invoice);
+		
+		//Wrap any database changes in a TRY/CATCH always
+		try 
+		{
+			//ACTUALLY save the changes to the database.
+			_context.SaveChanges();
+			//If the save doesn't have an error, return the invoice with the edits.
+			//	We use the GetInvoice to make sure that the data is the same as saved.
+			//	NOTE: Make sure you get the invoiceID from the database record
+				//	If the invoice was NEW, the ViewModel record will still have an
+				//	PK of 0, so you will end up returning a new record.
+			return GetInvoice(invoice.InvoiceID, invoice.CustomerID, invoice.EmployeeID);
+		}
+		catch (Exception ex)
+		{
+			//Rollback any changes if there is an error
+			//If you miss this step, then any other save attempts will
+			//	still have your other database changes that already failed to save.
+			//	P.S. You will keep getting errors.
+			_context.ChangeTracker.Clear();
+			result.AddError(new Error("Error Saving Changes",ex.InnerException.Message));
+			return result;
+		}
 	}
 	
 	//Used by other methods in the Service and not by the front end (web pages) so these can be made Private
