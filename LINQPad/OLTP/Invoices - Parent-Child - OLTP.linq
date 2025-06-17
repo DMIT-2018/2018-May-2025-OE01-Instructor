@@ -75,7 +75,7 @@ void Main()
 	//Setup a new invoice
 	InvoiceView invoiceView = new();
 	codeBehind.AddEditInvoice(invoiceView);
-	codeBehind.ErrorDetails.Dump("customer id, employee id, and invoice lines must be provided");
+	codeBehind.ErrorDetails.Dump("Customer id, employee id, and invoice lines must be provided");
 	
 	//update to fix missing values
 	invoiceView.CustomerID = 1;
@@ -87,17 +87,65 @@ void Main()
 	invoiceView.InvoiceLines.Add(invoiceLineView);
 	//rule: for each invoice line, a part must be provided
 	codeBehind.AddEditInvoice(invoiceView);
-	codeBehind.ErrorDetails.Dump("for each invoice line, a part must be provided");
+	codeBehind.ErrorDetails.Dump("For each invoice line, a part must be provided");
 	
+	//Make sure to give it a part so it doesn't keep failing on part
+	invoiceView.InvoiceLines[0].PartID = 1;
+	invoiceView.InvoiceLines[0].Price = -1;
+	invoiceView.InvoiceLines[0].Quantity = 0;
 	// rule: price is less than zero
 	// rule: quantity is less than one
+	codeBehind.AddEditInvoice(invoiceView);
+	codeBehind.ErrorDetails.Dump("For each invoice line, Part Price >= 0 and Quantity > 0");
 	
+	//Fix the errors, cause we tested them
+	invoiceView.InvoiceLines[0].Price = 15;
+	invoiceView.InvoiceLines[0].Quantity = 1;
+	
+	//Create a duplicate part (part with the same PartID)
+	invoiceLineView = new InvoiceLineView
+	{
+		PartID  = 1,
+		Price = 10,
+		Quantity = 4
+	};
+	//Add the new part to our invoice
+	invoiceView.InvoiceLines.Add(invoiceLineView);
+
 	// rule: duplicate parts added
+	codeBehind.AddEditInvoice(invoiceView);
+	codeBehind.ErrorDetails.Dump("Invoice Lines cannot be duplicated.");
+	
+	//Fix the errors, cause we tested it
+	invoiceView.InvoiceLines[1].PartID = 2;
+	//Make sure to add a date;
+	invoiceView.InvoiceDate = DateOnly.FromDateTime(DateTime.Now);
 	
 	// Pass: valid new invoice
-	// fix any errors in records
+	codeBehind.AddEditInvoice(invoiceView);
+	codeBehind.Invoice.Dump("Pass - New Invoice");
 	
+	//get the last invoice InvoiceID
+	int invoiceID = Invoices.Max(x => x.InvoiceID);
+	codeBehind.GetInvoice(invoiceID, 1, 1);
+	//Update the invoice with new data
+	invoiceView = codeBehind.Invoice;
+	invoiceView.CustomerID = 2;
+	invoiceView.EmployeeID = 3;
+	
+	//Update an existing LineItem with new data.
+	invoiceView.InvoiceLines[0].Quantity = 22;
+	//Add a new invoice Line
+	invoiceLineView = new InvoiceLineView
+	{
+		PartID = 3,
+		Price = 22,
+		Quantity = 3
+	};
+	invoiceView.InvoiceLines.Add(invoiceLineView);
 	// Pass: edit invoice
+	codeBehind.AddEditInvoice(invoiceView);
+	codeBehind.Invoice.Dump("Pass - Update Invoice");
 	
 	
 	//Edit the created invoice
@@ -399,21 +447,37 @@ public class InvoiceService
 			//rule: for each invoice line, the price must be greater than 0
 			if(invoiceLine.Price < 0)
 			{
-				result.AddError(new Error("Invalid Price", $"Part {invoiceLine.Description} has a price that is less than zero"));
+				string partName = _context.Parts
+									.Where(x => x.PartID == invoiceLine.PartID)
+									.Select(x => x.Description)
+									.FirstOrDefault();
+				result.AddError(new Error("Invalid Price", $"Part {partName} has a price that is less than zero"));
 			}
 			//rule: for each invoice line, the quantity cannot be lkess than 1
 			if (invoiceLine.Quantity < 1)
-				result.AddError(new Error("Invalid Quantity", $"Part {invoiceLine.Description} has a quantity that is less than one"));
+			{
+				string partName = _context.Parts
+									.Where(x => x.PartID == invoiceLine.PartID)
+									.Select(x => x.Description)
+									.FirstOrDefault();
+				result.AddError(new Error("Invalid Quantity", $"Part {partName} has a quantity that is less than one"));
+			}
+				
 		}
 
 		//Make sure you are outside the foreach loop!
 		// rule: parts cannot be duplicated on more than one line.
 		List<string> duplicatedParts = invoiceView.InvoiceLines
-											.GroupBy(x => new { x.PartID, x.Description })
+											.GroupBy(x => new { x.PartID })
 											.Where(x => x.Count() > 1)
 											.OrderBy(x => x.Key.PartID)
-											.Select(x => x.Key.Description)
-											.ToList();
+											//No way to use a navigational property with a GroupBy like this
+											//We need to go directly to Parts and use a .Where()
+											.Select(x => _context.Parts
+															.Where(p => p.PartID == x.Key.PartID)
+															.Select(p => p.Description)
+															.FirstOrDefault()
+											).ToList();
 											
 		if(duplicatedParts.Count > 0)
 		{
@@ -490,7 +554,11 @@ public class InvoiceService
 			if(!invoiceLineView.RemoveFromViewFlag)
 			{
 				invoice.SubTotal += invoiceLine.Quantity * invoiceLine.Price;
-				invoice.Tax += invoiceLineView.Taxable ? invoiceLine.Quantity * invoiceLine.Price * 0.05m : 0;
+				bool isTaxable = _context.Parts
+									.Where(x => x.PartID == invoiceLine.PartID)
+									.Select(x => x.Taxable)
+									.FirstOrDefault();
+				invoice.Tax += isTaxable ? invoiceLine.Quantity * invoiceLine.Price * 0.05m : 0;
 			}
 		}
 		
