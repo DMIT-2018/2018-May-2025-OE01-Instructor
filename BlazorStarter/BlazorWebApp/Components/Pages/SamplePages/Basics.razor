@@ -50,7 +50,7 @@
 <MudGrid Spacing="6"
          Class="mt-4">
     <MudItem xs="12" sm="6" md="4">
-        <MudForm @ref="textForm">
+        <MudForm @ref="textForm" @bind-IsValid="formValid">
             <!-- Heading for this Section -->
             <MudText Typo="Typo.h5">Text Boxes</MudText>
             <!-- Using MudBlazor label and input to enter an email -->
@@ -75,17 +75,19 @@
                            @bind-Date="dateText"
                            Variant="Variant.Outlined"
                            Validation="@(new Func<string, string>(ValidateDate))" />
-            <!-- Button to trigger the TextSubmit Method -->
-            <MudButton OnClick="TextSubmit"
-                       Variant="Variant.Outlined"
-                       Color="Color.Tertiary">
-                Text Submit
-            </MudButton>
-            <MudButton OnClick="@(() => textForm.Validate())"
-                       Variant="Variant.Outlined"
-                       Color="Color.Info">
-                Validate Text
-            </MudButton>
+            <MudStack Row Spacing="4" Justify="Justify.FlexEnd">
+                <!-- Button to trigger the TextSubmit Method -->
+                <MudButton OnClick="TextSubmit"
+                           Variant="Variant.Outlined"
+                           Color="Color.Tertiary">
+                    Text Submit
+                </MudButton>
+                <MudButton OnClick="@(() => textForm.Validate())"
+                           Variant="Variant.Outlined"
+                           Color="Color.Info">
+                    Validate Text
+                </MudButton>
+            </MudStack>
         </MudForm>
     </MudItem>
     <MudItem xs="12" sm="6" md="4">
@@ -93,11 +95,12 @@
         <MudRadioGroup @bind-Value="mealMicrosoft">
             <MudText Typo="Typo.h6">Select your favourite meal (MudBlazor): </MudText>
             <!-- Note: Name in the InputRadioGroup and InputRadio items must match -->
-            @foreach (var meal in meals)
-            {
-                <br />
-                <MudRadio Value="@meal">@meal</MudRadio>
-            }
+            <MudStack>
+                @foreach (var meal in meals)
+                {
+                    <MudRadio Value="@meal">@meal</MudRadio>
+                }
+            </MudStack>
         </MudRadioGroup>
         <MudCheckBox @bind-Value="acceptanceBox"
                      Color="Color.Primary"
@@ -161,6 +164,4 @@
         </MudButton>
     </MudItem>
 </MudGrid>
-<div class="mt-2 mx-auto">
-    <h2>@feedback</h2>
-</div>
+<MudText Typo="Typo.h4" Class="mt-2">@feedback</MudText>

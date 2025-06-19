@@ -17,6 +17,7 @@ namespace BlazorWebApp.Components.Pages.SamplePages
         private string passwordText = string.Empty;
         private DateTime? dateText = DateTime.Today;
         private MudForm textForm = new();
+        private bool formValid = true;
         #endregion
 
         #region Radio Buttons, Checkboxes, & Text Area
@@ -127,7 +128,7 @@ namespace BlazorWebApp.Components.Pages.SamplePages
             //force the form to validate
             textForm.Validate();
             //Check if it is valid
-            if(textForm.IsValid)
+            if(formValid)
             {
                 //Combine the values of emailText, passwordText, and dateText into a feedback message
                 //When using string interpolation if using a terinary operator, remember to wrap the terinary operator in ( )
