@@ -73,118 +73,93 @@
             -->
             <MudDatePicker Label="Enter a Date"
                            @bind-Date="dateText"
-                           Variant="Variant.Outlined" />
+                           Variant="Variant.Outlined"
+                           Validation="@(new Func<string, string>(ValidateDate))" />
             <!-- Button to trigger the TextSubmit Method -->
             <MudButton OnClick="TextSubmit"
                        Variant="Variant.Outlined"
                        Color="Color.Tertiary">
                 Text Submit
             </MudButton>
+            <MudButton OnClick="@(() => textForm.Validate())"
+                       Variant="Variant.Outlined"
+                       Color="Color.Info">
+                Validate Text
+            </MudButton>
         </MudForm>
     </MudItem>
-    <div>
-        <h3>Radio buttons, Checkbox, Text Area</h3>
-        <div class="mb-3">
-            <!-- Example using a Microsoft Component -->
-            <label class="form-label">Select your favourite meal (Microsoft): </label><br />
+    <MudItem xs="12" sm="6" md="4">
+        <MudText Typo="Typo.h5">Radio buttons, Checkbox, Text Area</MudText>
+        <MudRadioGroup @bind-Value="mealMicrosoft">
+            <MudText Typo="Typo.h6">Select your favourite meal (MudBlazor): </MudText>
             <!-- Note: Name in the InputRadioGroup and InputRadio items must match -->
-            <InputRadioGroup Name="mealRadio" @bind-Value="mealMicrosoft">
-                @foreach (var meal in meals)
-                {
-                    <InputRadio Name="mealRadio" Value="@meal" class="form-check-input" />
-
-                    <span class="form-check-label">@($"   {meal}")</span>
-                    <br />
-                }
-            </InputRadioGroup>
-        </div>
-        <div class="mb-3">
-            <!-- Example using input -->
-            <label class="form-label">Select your favourite meal (Bootstrap): </label>
-            @foreach (var item in meals)
+            @foreach (var meal in meals)
             {
-                <div class="form-check">
-                    <input class="form-check-input"
-                           type="radio"
-                           name="meal"
-                           id="meal-@item"
-                           @onchange="HandleMealSelection"
-                           checked="@(item == mealBootstrap)"
-                           value="@item">
-                    <label class="form-check-label" for="meal-@item">
-                        @item
-                    </label>
-                </div>
+                <br />
+                <MudRadio Value="@meal">@meal</MudRadio>
             }
-        </div>
-        <div class="mb-3">
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="exampleCheckbox" @bind="acceptanceBox" />
-                <label class="form-check-label" for="exampleCheckbox">
-                    I accept the terms of service.
-                </label>
-            </div>
-        </div>
-        <div class="mb-3">
-            <textarea rows="5"
-                      cols="50"
-                      class="form-control"
-                      placeholder="enter message..."
-                      @bind="messageBody" />
-        </div>
-        <button class="btn btn-success" @onclick="RadioCheckAreaSubmit">
+        </MudRadioGroup>
+        <MudCheckBox @bind-Value="acceptanceBox"
+                     Color="Color.Primary"
+                     Label="I accept the terms of service" />
+        <MudTextField Label="Enter a message"
+                      Variant="Variant.Outlined"
+                      @bind-Value="messageBody"
+                      Lines="5" />
+        <MudButton OnClick="RadioCheckAreaSubmit"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary">
             Radio/Check/Area Submit
-        </button>
-    </div>
-    <div>
-        <h3>List and Slider</h3>
+        </MudButton>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudText Typo="Typo.h5">List and Slider</MudText>
         <!-- Display a label for the dropdown -->
-        <label for="rideSelect" class="form-label">
-            Select your favourite ride
-        </label>
-        <!-- Create a dropdown select element that binds to the 'myRide' field -->
-        <select class="form-select" id="rideSelect" @bind="myRide">
-            <!--
-                Default option, displayed when no option selected
-                Since this is an int, the value must be 0 which is
-                the default int value.
-                For strings value should = "" or not be set
-            -->
-            <option value="0">Select ride...</option>
-            <!-- Loop through all values in the rides collection and create an option for each -->
+        <MudSelect Label="Select a ride"
+                   Variant="Variant.Outlined"
+                   @bind-Value="myRide"
+                   Placeholder="Select ride..."
+                   Clearable
+                   Required
+                   RequiredError="Ride selection is required">
             @foreach (var item in rides)
             {
                 <!--
                     Use the .Key for the dictionary as the value as it is an int
                     Use the .Value to display the string value from the dictionary
+                    REMEMBER TO SPECIFY THE T (type) of the MudSelectItem when using 
+                    a nullable value to bind.
+                    For example: the T="int?" is used to specify that the value can be null
                 -->
-                <option value="@item.Key">@item.Value</option>
+                <MudSelectItem T="int?" Value="@item.Key">@item.Value</MudSelectItem>
             }
-        </select>
-        <label class="form-label">
-            Select favourite Vacation Spot
-            <input type="text" @bind="vacationSpot"
-                   list="VacationChoices"
-                   class="form-control" />
-            <datalist id="VacationChoices">
-                <!-- Data lists do not have default values -->
-                @foreach (var item in vacationSpots)
-                {
-                    <option value="@item" />
-                }
-            </datalist>
-        </label>
-        <br />
-        <!-- Label for the slider -->
-        <label for="reviewRange" class="form-label">Rate the form control review (0 = bad, 10 = good)</label>
-        <!-- Input element of type="range", bind to the reviewRating field -->
-        <input type="range" class="form-range" id="reviewRange" @bind="reviewRating" min="0" max="10" steps="1" />
-        <!-- Displays the selected value in the range to the user -->
-        <h6>Rating: @reviewRating</h6>
-        <button class="btn btn-primary" @onclick="ListSliderSubmit">
+        </MudSelect>
+        <MudSelect Label="Select Vacation Spots"
+                   @bind-SelectedValues="selectedVacationSpots"
+                   @bind-Value="vacationSpot"
+                   Variant="Variant.Outlined"
+                   MultiSelection="true"
+                   Clearable
+                   Required
+                   RequiredError="You must select at least one vacation spot"
+                   Placeholder="Select Vacation Spots">
+            @foreach(var item in vacationSpots)
+            {
+                <MudSelectItem Value="@item">@item</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSlider @bind-Value="reviewRating"
+                   Min="0"
+                   Max="10"
+                   Step="1">
+            Rate the form control review (0 = bad, 10 = good)
+        </MudSlider>
+        <MudText Typo="Typo.body2"><strong>Rating: </strong>@reviewRating</MudText>
+        <MudButton OnClick="ListSliderSubmit"
+                   Variant="Variant.Filled">
             List/Slider Submit
-        </button>
-    </div>
+        </MudButton>
+    </MudItem>
 </MudGrid>
 <div class="mt-2 mx-auto">
     <h2>@feedback</h2>

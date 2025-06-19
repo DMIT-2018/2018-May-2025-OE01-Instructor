@@ -47,10 +47,12 @@ namespace BlazorWebApp.Components.Pages.SamplePages
         // will be created in a separate method
         private Dictionary<int, string> rides = [];
         // Used to hold the selected value from the rides collection
-        private int myRide;
+        // Note: To not show the 0 when the page loads, use a nullable int.
+        private int? myRide;
         // Used to hold a possible list of string
         // representing various vacation spots
         private List<string> vacationSpots = [];
+        private IEnumerable<string> selectedVacationSpots = [];
         // Used to store the user's selected vacation spot.
         private string vacationSpot = string.Empty;
         // Used to hold the rating Value
@@ -122,8 +124,25 @@ namespace BlazorWebApp.Components.Pages.SamplePages
         /// </summary>
         private void TextSubmit()
         {
-            //Combine the values of emailText, passwordText, and dateText into a feedback message
-            feedback = $"Email: {emailText}; Password: {passwordText}; Date: ";
+            //force the form to validate
+            textForm.Validate();
+            //Check if it is valid
+            if(textForm.IsValid)
+            {
+                //Combine the values of emailText, passwordText, and dateText into a feedback message
+                //When using string interpolation if using a terinary operator, remember to wrap the terinary operator in ( )
+                feedback = $"Email: {emailText}; Password: {passwordText}; Date: {(dateText.HasValue ? dateText.Value.ToString("d"):"No Date")}";
+            }
+        }
+
+        private string ValidateDate(string date)
+        {
+            // Check if the date is in the past
+            if (dateText.HasValue ? dateText.Value < DateTime.Now: false)
+            {
+                return "The date cannot be in the past.";
+            }
+            return null;
         }
         /// <summary>
         /// Handle the selection of the meal from the radio button control
@@ -172,7 +191,7 @@ namespace BlazorWebApp.Components.Pages.SamplePages
         private void ListSliderSubmit()
         {
             //Generate the feedback string incorporating the selected values
-            feedback = $"Ride: {myRide}; Vacation Spot: {vacationSpot}; Review Rating: {reviewRating}";
+            feedback = $"Ride: {(myRide.HasValue ? rides[myRide.Value]:"No Ride Selected")}; Vacation Spot: {vacationSpot}; Review Rating: {reviewRating}";
         }
         #endregion
     }
