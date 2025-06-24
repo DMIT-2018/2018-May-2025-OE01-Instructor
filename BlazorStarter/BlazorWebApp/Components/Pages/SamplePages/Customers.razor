@@ -1,0 +1,59 @@
+﻿@page "/SamplePages/Customers"
+
+<PageTitle>Customers</PageTitle>
+
+<MudStack Row="true" Spacing="4" AlignItems="AlignItems.Center">
+    <MudText Typo="Typo.h5">Customer Search</MudText>
+    <MudTextField @bind-Value="lastName"
+                  Label="Last Name"
+                  Variant="Variant.Outlined" />
+    <MudTextField @bind-Value="phone"
+                  Label="Phone Number"
+                  Variant="Variant.Outlined" />
+    <MudButton OnClick="GetCustomers"
+               Variant="Variant.Outlined"
+               Color="Color.Secondary">
+        Search  
+    </MudButton>
+    <MudButton OnClick="NewCustomer"
+               Variant="Variant.Outlined"
+               Color="Color.Tertiary">
+        Add  
+    </MudButton>
+</MudStack>
+
+@if(customerList.Count > 0)
+{
+    <MudDataGrid Items="customerList"
+                 Striped
+                 FixedFooter
+                 FixedHeader
+                 Height="75vh">
+        <Columns>
+            <TemplateColumn>
+                <HeaderTemplate>
+                    Actions
+                </HeaderTemplate>
+                <CellTemplate>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Tertiary"
+                               OnClick="() => EditCustomer(context.Item.CustomerID)">
+                        Edit    
+                    </MudButton>
+                </CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="x => x.FirstName" Title="First Name" />
+            <PropertyColumn Property="x => x.LastName" Title="Last Name" />
+            <PropertyColumn Property="x => x.CityProv" Title="City, Province" />
+            <PropertyColumn Property="x => x.Phone" Title="Phone Number" />
+            <PropertyColumn Property="x => x.Email" Title="Email" />
+            <PropertyColumn Property="@(x => x.TotalSales > 0 
+                                        ? x.TotalSales.ToString("C2")
+                                        : string.Empty)" 
+                            Title="Total Sale" />
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager />
+        </PagerContent>
+    </MudDataGrid>
+}
