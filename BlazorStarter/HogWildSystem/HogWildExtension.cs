@@ -24,5 +24,6 @@ namespace HogWildSystem
                     throw new InvalidOperationException("HogWildContext is not registered.")
                     : new WorkingVersionService(context);
             });
+        }
     }
 }

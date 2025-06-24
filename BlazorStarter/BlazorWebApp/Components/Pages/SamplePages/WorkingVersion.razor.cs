@@ -8,7 +8,7 @@ namespace BlazorWebApp.Components.Pages.SamplePages
     {
         #region Fields
         private WorkingVersionView? workingVersionView;
-        private List<string> errorMessages = [];
+        private string errorMessage = string.Empty;
         #endregion
 
         #region Properties
@@ -25,7 +25,7 @@ namespace BlazorWebApp.Components.Pages.SamplePages
             }
             catch (Exception ex)
             {
-                errorMessages.Add(BlazorHelperClass.GetInnerException(ex).Message);
+                errorMessage = ex.Message;
             }
         }
         #endregion

@@ -1,2 +1,26 @@
-﻿<h3>WorkingVersion</h3>
+﻿@page "/SamplePages/WorkingVersion"
 
+<PageTitle>Working Version</PageTitle>
+
+<MudText Typo="Typo.h3">Current Working Version Info</MudText>
+
+@if (workingVersionView?.VersionId > 0)
+{
+    <MudText Typo="Typo.h5"><strong>Version ID:</strong> @workingVersionView.VersionId</MudText>    
+    <MudText Typo="Typo.h5"><strong>Version:</strong> @workingVersionView.Version</MudText>      
+    <MudText Typo="Typo.h5"><strong>Date:</strong> @workingVersionView.AsOfDate.ToString("MMM dd, yyyy")</MudText>    
+    <MudText Typo="Typo.h5"><strong>Comments:</strong> @workingVersionView.Comments</MudText>    
+}
+
+<MudButton OnClick="GetWorkVersion"
+           Variant="Variant.Filled"
+           Color="Color.Primary">
+    Get Working Version       
+</MudButton>
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <MudAlert Severity="Severity.Error" Class="mt-4">
+        <MudText Typo="Typo.h4">@errorMessage</MudText>
+    </MudAlert>
+}

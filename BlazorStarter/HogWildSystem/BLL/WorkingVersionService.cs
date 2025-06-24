@@ -23,10 +23,7 @@ namespace HogWildSystem.BLL
                     .Select(x => new WorkingVersionView
                     {
                         VersionId = x.VersionId,
-                        Major = x.Major,
-                        Minor = x.Minor,
-                        Build = x.Build,
-                        Revision = x.Revision,
+                        Version = $"{x.Major}.{x.Minor}.{x.Build} Rev {x.Revision}",
                         AsOfDate = x.AsOfDate,
                         Comments = x.Comments
                     }).FirstOrDefault();
