@@ -4,5 +4,12 @@
     it in the page directive
 -->
 
-<MudText Typo="Typo.h3">Customer: @CustomerID</MudText>
+@if(CustomerID == 0)
+{
+    <MudText Typo="Typo.h3">New Customer</MudText>
+}
+else
+{
+    <MudText Typo="Typo.h3">Edit Customer: @customer.FirstName @customer.LastName</MudText>
+}
 

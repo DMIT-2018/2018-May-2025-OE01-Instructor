@@ -65,5 +65,54 @@ namespace HogWildSystem.BLL
             }
             return result.WithValue(customers);
         }
+
+        public Result<CustomerEditView> GetCustomer_ByID(int customerID)
+        {
+            var result = new Result<CustomerEditView>();
+            //rule: CustomerID must be valid
+            if (customerID <= 0)
+            {
+                result.AddError(new Error("Missing Information", "Please provide a valid Customer ID."));
+                return result;
+            }
+
+
+            var customer = _context.Customers
+                    .Where(x => !x.RemoveFromViewFlag
+                                && x.CustomerID == customerID)
+                    .Select(x => new CustomerEditView
+                    {
+                        CustomerID = x.CustomerID,
+                        FirstName = x.FirstName,
+                        //Added this field and HasInvoices to show that not all values
+                        //in a ViewModel need to be for display
+                        //Sometimes we just need to keep or bring in values 
+                        //to use for logic
+                        OrginalFirstName = x.FirstName,
+                        LastName = x.LastName,
+                        Address1 = x.Address1,
+                        Address2 = x.Address2,
+                        City = x.City,
+                        ProvStateID = x.ProvStateID,
+                        CountryID = x.CountryID,
+                        PostalCode = x.PostalCode,
+                        Phone = x.Phone,
+                        Email = x.Email,
+                        StatusID = x.StatusID,
+                        HasInvoices = x.Invoices.Any(),
+                        RemoveFromViewFlag = x.RemoveFromViewFlag
+
+                    })
+                    .FirstOrDefault();
+
+            if (customer == null)
+            {
+                result.AddError(new Error("No Customer", $"No customer was found with ID: {customerID}"));
+                return result;
+            }
+
+            //return the result
+            return result.WithValue(customer);
+        }
     }
 }
