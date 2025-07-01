@@ -11,17 +11,22 @@ namespace BlazorWebApp.Components.Pages.SamplePages
         #region Fields
         private CustomerEditView customer = new();
         // feedback message to display to the user.
-	    private string feedbackMessage = string.Empty;
-	    // collected error details.
-	    private List<string> errorDetails = new();
-	    // general error message.
-	    private string errorMessage = string.Empty;
+        private string feedbackMessage = string.Empty;
+        // collected error details.
+        private List<string> errorDetails = new();
+        // general error message.
+        private string errorMessage = string.Empty;
+        private bool hasError => !string.IsNullOrWhiteSpace(errorMessage) || errorDetails.Any();
+        private bool hasFeedback => !string.IsNullOrWhiteSpace(feedbackMessage);
         private List<LookupView> provinces = [];
         private List<LookupView> countries = [];
         private List<LookupView> customerStatuses = [];
+        private List<InvoiceView> invoices = [];
         //form fields
         private MudForm customerForm = new();
         private bool isFormValid;
+        private bool hasDataChanged;
+        private string closeButtonText => hasDataChanged ? "Cancel" : "Close";
         //Define the mask for the Phone number
         private IMask customerPhone = new BlockMask(delimiters: "-", new Block('0', 3, 3), new Block('0', 3, 3), new Block('0', 4, 4));
         //Define a mask for the Postal Code
@@ -38,6 +43,12 @@ namespace BlazorWebApp.Components.Pages.SamplePages
         protected CustomerService CustomerService { get; set; } = default!;
         [Inject]
         protected LookupService LookupService { get; set; } = default!;
+        [Inject]
+        protected IDialogService DialogService { get; set; } = default!;
+        [Inject]
+        protected NavigationManager NavigationManager { get; set; } = default!;
+        [Inject]
+        protected InvoiceService InvoiceService { get; set; } = default!;
         #endregion
 
         #region Method
@@ -48,21 +59,29 @@ namespace BlazorWebApp.Components.Pages.SamplePages
             errorMessage = string.Empty;
             feedbackMessage = string.Empty;
 
-            if(CustomerID > 0)
+            if (CustomerID > 0)
             {
                 try
-		        {
-			        var result = CustomerService.GetCustomer_ByID(CustomerID);
-			        if (result.IsSuccess)
-				        customer = result.Value ?? new();
-			        else
-				        errorDetails = BlazorHelperClass.GetErrorMessages(result.Errors.ToList());
-		        }
-		        catch (Exception ex)
-		        {
-			        // capture any exception message for display
-			        errorMessage = ex.Message;
-		        }
+                {
+                    var result = CustomerService.GetCustomer_ByID(CustomerID);
+                    if (result.IsSuccess)
+                    {
+                        customer = result.Value ?? new();
+                        var invoiceResults = InvoiceService.GetInvoices_ByCustomerID(CustomerID);
+                        if (invoiceResults.IsSuccess)
+                            invoices = invoiceResults.Value ?? [];
+                        else
+                            errorDetails = BlazorHelperClass.GetErrorMessages(result.Errors.ToList());
+                    }    
+                        
+                    else
+                        errorDetails = BlazorHelperClass.GetErrorMessages(result.Errors.ToList());
+                }
+                catch (Exception ex)
+                {
+                    // capture any exception message for display
+                    errorMessage = ex.Message;
+                }
             }
             else
             {
@@ -71,28 +90,112 @@ namespace BlazorWebApp.Components.Pages.SamplePages
 
             //Get Lookup Data
             try
-		    {
-			    var provinceResult = LookupService.GetLookupValues("Province");
-			    if (provinceResult.IsSuccess)
-				    provinces = provinceResult.Value ?? [];
-			    else
-				    errorDetails = BlazorHelperClass.GetErrorMessages(provinceResult.Errors.ToList());
+            {
+                var provinceResult = LookupService.GetLookupValues("Province");
+                if (provinceResult.IsSuccess)
+                    provinces = provinceResult.Value ?? [];
+                else
+                    errorDetails = BlazorHelperClass.GetErrorMessages(provinceResult.Errors.ToList());
                 var countryResults = LookupService.GetLookupValues("Country");
-			    if (countryResults.IsSuccess)
-				    countries = countryResults.Value ?? [];
-			    else
-				    errorDetails = BlazorHelperClass.GetErrorMessages(countryResults.Errors.ToList());
+                if (countryResults.IsSuccess)
+                    countries = countryResults.Value ?? [];
+                else
+                    errorDetails = BlazorHelperClass.GetErrorMessages(countryResults.Errors.ToList());
                 var statusResult = LookupService.GetLookupValues("Customer Status");
-			    if (statusResult.IsSuccess)
-				    customerStatuses = statusResult.Value ?? [];
-			    else
-				    errorDetails = BlazorHelperClass.GetErrorMessages(statusResult.Errors.ToList());
-		    }
-		    catch (Exception ex)
-		    {
-			    // capture any exception message for display
-			    errorMessage = ex.Message;
-		    }
+                if (statusResult.IsSuccess)
+                    customerStatuses = statusResult.Value ?? [];
+                else
+                    errorDetails = BlazorHelperClass.GetErrorMessages(statusResult.Errors.ToList());
+            }
+            catch (Exception ex)
+            {
+                // capture any exception message for display
+                errorMessage = ex.Message;
+            }
+        }
+
+        public void AddEditCustomer()
+        {
+            // clear previous error details and messages
+            errorDetails.Clear();
+            errorMessage = string.Empty;
+            feedbackMessage = String.Empty;
+
+            // wrap the service call in a try/catch to handle unexpected exceptions
+            try
+            {
+                var result = CustomerService.AddEditCustomer(customer);
+                if (result.IsSuccess)
+                {
+                    customer = result.Value ?? new();
+                    feedbackMessage = "Customer was successfully saved!";
+
+                    //reset the trackers
+                    hasDataChanged = false;
+                    isFormValid = false;
+                    customerForm.ResetTouched();
+                } 
+                else
+                    errorDetails = BlazorHelperClass.GetErrorMessages(result.Errors.ToList());
+            }
+            catch (Exception ex)
+            {
+                // capture any exception message for display
+                errorMessage = ex.Message;
+            }
+        }
+
+        public async Task Cancel()
+        {
+            if(hasDataChanged)
+            {
+                bool? result = await DialogService.ShowMessageBox("Confirm Cancel",
+                                        "Are you sure you want to close the customer editor? All unsaved changes will be lost.", yesText: "Yes", noText: "No");
+                //results will be true if the user selects the YES option, will be false if the user selects the NO option.
+                //results could be null if the user dismisses the dialogue
+                    //  e.g. clicked the close button 'x'
+                if(result == false || result == null)
+                {
+                    return;
+                }
+            }
+            NavigationManager.NavigateTo("/SamplePages/Customers");
+        }
+
+        public async Task EditInvoice(int invoiceID)
+        {
+            if(hasDataChanged)
+            {
+                bool? result = await DialogService.ShowMessageBox("Confirm Cancel",
+                                        "Are you sure you want to edit the invoice? All unsaved customer changes will be lost.", yesText: "Yes", noText: "No");
+                //results will be true if the user selects the YES option, will be false if the user selects the NO option.
+                //results could be null if the user dismisses the dialogue
+                    //  e.g. clicked the close button 'x'
+                if(result == false || result == null)
+                {
+                    return;
+                }
+            }
+        }
+        public async Task NewInvoice()
+        {
+            if(hasDataChanged)
+            {
+                bool? result = await DialogService.ShowMessageBox("Confirm Cancel",
+                                        "Would you like to save any customer changes before creating a new invoice?", yesText: "Yes", noText: "No");
+                //results will be true if the user selects the YES option, will be false if the user selects the NO option.
+                //results could be null if the user dismisses the dialogue
+                    //  e.g. clicked the close button 'x'
+                if(result == false || result == null)
+                {
+                    //NavigationManager
+                }
+                else
+                {
+                    AddEditCustomer();
+                    //NavigationManager
+                }
+            }
         }
         #endregion
     }

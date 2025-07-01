@@ -13,7 +13,28 @@ else
     <MudText Typo="Typo.h3">Edit Customer: @customer.FirstName @customer.LastName</MudText>
 }
 
-<MudForm @ref="customerForm" @bind-IsValid="isFormValid">
+@if(hasError)
+{
+    <MudAlert Elevation="2"
+              Severity="Severity.Error"
+              Dense>
+        <MudText Typo="Typo.h6">@errorMessage</MudText>
+        @foreach(var error in errorDetails)
+        {
+            <MudText Typo="Typo.body2">@error</MudText>
+        }
+    </MudAlert>
+}
+@if (hasFeedback)
+{
+    <MudAlert Elevation="2"
+              Severity="Severity.Info"
+              Dense>
+        <MudText Typo="Typo.h6">@feedbackMessage</MudText>
+    </MudAlert>
+}
+
+<MudForm @ref="customerForm" @bind-IsValid="isFormValid" @bind-IsTouched="hasDataChanged">
     <!--
         Inside of the Mudform, we can make it look whatever way we want with out components
     -->
@@ -25,7 +46,7 @@ else
                           Variant="Variant.Outlined"
                           Required
                           RequiredError="First Name is required"
-                          MaxLength="20"
+                          MaxLength="200"
                           Immediate="true" />
             <MudTextField Label="Last Name"
                           @bind-Value="customer.LastName"
@@ -112,6 +133,58 @@ else
                     <MudSelectItem T="int?" Value="@item.LookupID">@item.Name</MudSelectItem>
                 }
             </MudSelect>
+        </MudItem>
+        <MudItem xs="12">
+            <MudStack Row AlignItems="AlignItems.Center" Spacing="4">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="AddEditCustomer"
+                           Disabled=@(!isFormValid || !hasDataChanged)>
+                    Save       
+                </MudButton>
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Error"
+                           OnClick="Cancel">
+                    @closeButtonText
+                </MudButton>
+                <MudSpacer />
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Tertiary"
+                           OnClick="NewInvoice">
+                    New Invoice
+                </MudButton>
+            </MudStack>
+        </MudItem>
+        <MudItem xs="12" Class="mt-4">
+            <MudDataGrid Items="invoices"
+                         Striped
+                         FixedFooter
+                         FixedHeader
+                         Height="27vh">
+                <Columns>
+                    <TemplateColumn>
+                        <HeaderTemplate>
+                            Actions
+                        </HeaderTemplate>
+                        <CellTemplate>
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Secondary"
+                                       OnClick="() => EditInvoice(context.Item.InvoiceID)">
+                                Edit Invoice       
+                            </MudButton>
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <PropertyColumn Property="x => x.InvoiceID" Title="Invoice ID" />
+                    <PropertyColumn Property="x => x.InvoiceDate" Title="Invoice Date" />
+                    <PropertyColumn Property="x => x.Total" Title="Total" />
+                </Columns>
+                <NoRecordsContent>
+                    <MudText Typo="Typo.h6">No invoices for the Customer.</MudText>
+                </NoRecordsContent>
+                <PagerContent>
+                    <MudDataGridPager />
+                </PagerContent>
+            </MudDataGrid>
         </MudItem>
     </MudGrid>
 </MudForm>
