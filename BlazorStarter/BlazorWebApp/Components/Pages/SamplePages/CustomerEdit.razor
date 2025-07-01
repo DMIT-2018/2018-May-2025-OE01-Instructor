@@ -13,3 +13,106 @@ else
     <MudText Typo="Typo.h3">Edit Customer: @customer.FirstName @customer.LastName</MudText>
 }
 
+<MudForm @ref="customerForm" @bind-IsValid="isFormValid">
+    <!--
+        Inside of the Mudform, we can make it look whatever way we want with out components
+    -->
+    <MudGrid>
+        <!--Column One-->
+        <MudItem xs="12" sm="6">
+            <MudTextField Label="First Name"
+                          @bind-Value="customer.FirstName"
+                          Variant="Variant.Outlined"
+                          Required
+                          RequiredError="First Name is required"
+                          MaxLength="20"
+                          Immediate="true" />
+            <MudTextField Label="Last Name"
+                          @bind-Value="customer.LastName"
+                          Variant="Variant.Outlined"
+                          Required
+                          RequiredError="Last Name is required"
+                          MaxLength="50"
+                          Immediate="true" />
+            <MudTextField Label="Address 1"
+                          @bind-Value="customer.Address1"
+                          Variant="Variant.Outlined"
+                          Required
+                          RequiredError="Address 1 is required"
+                          MaxLength="50"
+                          Immediate="true" />
+            <MudTextField Label="Address 2"
+                          @bind-Value="customer.Address2"
+                          Variant="Variant.Outlined"
+                          MaxLength="50"
+                          Immediate="true" />
+            <MudTextField Label="City"
+                          @bind-Value="customer.City"
+                          Variant="Variant.Outlined"
+                          Required
+                          RequiredError="City is required"
+                          MaxLength="50"
+                          Immediate="true" />
+            <MudSelect @bind-Value="customer.ProvStateID"
+                       Variant="Variant.Outlined"
+                       Label="Province"
+                       Required
+                       RequiredError="You must select a province"
+                       Placeholder="Select province...">
+                @foreach(var item in provinces)
+                {
+                    <MudSelectItem T="int?" Value="@item.LookupID">@item.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <!--Column Two-->
+        <MudItem xs="12" sm="6">
+            <MudSelect @bind-Value="customer.CountryID"
+                       Variant="Variant.Outlined"
+                       Label="Country"
+                       Required
+                       RequiredError="You must select a country"
+                       Placeholder="Select country...">
+                @foreach (var item in countries)
+                {
+                    <MudSelectItem T="int?" Value="@item.LookupID">@item.Name</MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField Label="Postal Code"
+                          @bind-Value="customer.PostalCode"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="Postal Code is required."
+                          MaxLength="20"
+                          Immediate="true" />
+            <MudTextField Label="Phone Number"
+                          @bind-Value="customer.Phone"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="Phone Number is required."
+                          MaxLength="20"
+                          Mask="customerPhone"
+                          Immediate="true" />
+            <MudTextField Label="Email"
+                          @bind-Value="customer.Email"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="Email is required."
+                          MaxLength="250"
+                          Mask="customerEmail"
+                          Immediate="true" />
+            <MudSelect @bind-Value="customer.StatusID"
+                       Variant="Variant.Outlined"
+                       Label="Status"
+                       Required
+                       RequiredError="You must select a Customer Status"
+                       Placeholder="Select status...">
+                @foreach (var item in customerStatuses)
+                {
+                    <MudSelectItem T="int?" Value="@item.LookupID">@item.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+</MudForm>
+

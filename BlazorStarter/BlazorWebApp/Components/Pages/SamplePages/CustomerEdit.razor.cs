@@ -2,6 +2,7 @@
 using HogWildSystem.Entities;
 using HogWildSystem.ViewModels;
 using Microsoft.AspNetCore.Components;
+using MudBlazor;
 
 namespace BlazorWebApp.Components.Pages.SamplePages
 {
@@ -18,6 +19,16 @@ namespace BlazorWebApp.Components.Pages.SamplePages
         private List<LookupView> provinces = [];
         private List<LookupView> countries = [];
         private List<LookupView> customerStatuses = [];
+        //form fields
+        private MudForm customerForm = new();
+        private bool isFormValid;
+        //Define the mask for the Phone number
+        private IMask customerPhone = new BlockMask(delimiters: "-", new Block('0', 3, 3), new Block('0', 3, 3), new Block('0', 4, 4));
+        //Define a mask for the Postal Code
+        //Not working, will investigate
+        //private IMask customerPostalCode = new RegexMask(@"^\d[A-Z]\d [A-Z]\d[A-Z]$");
+        //Define a mask for the Email address
+        private IMask customerEmail = RegexMask.Email();
         #endregion
 
         #region Properties

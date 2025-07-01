@@ -16,12 +16,12 @@ namespace HogWildSystem.ViewModels
 	public string Address1 { get; set; } = string.Empty;
 	public string Address2 { get; set; } = string.Empty;
 	public string City { get; set; } = string.Empty;
-	public int ProvStateID { get; set; }
-	public int CountryID { get; set; }
+	public int? ProvStateID { get; set; }
+	public int? CountryID { get; set; }
 	public string PostalCode { get; set; } = string.Empty;
 	public string Phone { get; set; } = string.Empty;
 	public string Email { get; set; } = string.Empty;
-	public int StatusID { get; set; }
+	public int? StatusID { get; set; }
 	public bool HasInvoices { get; set; }
 	public bool RemoveFromViewFlag { get; set; }
 }
