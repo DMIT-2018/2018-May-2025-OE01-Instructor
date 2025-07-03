@@ -166,7 +166,7 @@ namespace BlazorWebApp.Components.Pages.SamplePages
         {
             if(hasDataChanged)
             {
-                bool? result = await DialogService.ShowMessageBox("Confirm Cancel",
+                bool? result = await DialogService.ShowMessageBox("Confirm Navigation",
                                         "Are you sure you want to edit the invoice? All unsaved customer changes will be lost.", yesText: "Yes", noText: "No");
                 //results will be true if the user selects the YES option, will be false if the user selects the NO option.
                 //results could be null if the user dismisses the dialogue
@@ -176,12 +176,14 @@ namespace BlazorWebApp.Components.Pages.SamplePages
                     return;
                 }
             }
+            //Note: We are hard coding the Employee ID to 1 since we have no authentication yet
+            NavigationManager.NavigateTo($"/SamplePages/InvoiceEdit/{invoiceID}/{CustomerID}/1");
         }
         public async Task NewInvoice()
         {
             if(hasDataChanged)
             {
-                bool? result = await DialogService.ShowMessageBox("Confirm Cancel",
+                bool? result = await DialogService.ShowMessageBox("Confirm Navigation",
                                         "Would you like to save any customer changes before creating a new invoice?", yesText: "Yes", noText: "No");
                 //results will be true if the user selects the YES option, will be false if the user selects the NO option.
                 //results could be null if the user dismisses the dialogue
@@ -196,6 +198,7 @@ namespace BlazorWebApp.Components.Pages.SamplePages
                     //NavigationManager
                 }
             }
+            NavigationManager.NavigateTo($"/SamplePages/InvoiceEdit/0/{CustomerID}/1");
         }
         #endregion
     }
