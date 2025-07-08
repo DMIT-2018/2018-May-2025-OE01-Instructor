@@ -1,5 +1,7 @@
 ﻿@page "/SamplePages/InvoiceEdit/{InvoiceID:int}/{CustomerID:int}/{EmployeeID:int}"
 
+@using HogWildSystem.ViewModels
+
 <PageTitle>Invoice Edit</PageTitle>
 
 <MudText Typo="Typo.h3">
@@ -42,3 +44,33 @@
         </MudPaper>
     </MudItem>
 </MudGrid>
+
+<MudStack Row
+          Class="mt-2"
+          AlignItems="AlignItems.Center"
+          Justify="Justify.FlexStart"
+          Spacing="4">
+    <MudSelect Variant="Variant.Outlined"
+               ValueChanged="(int? newCategoryID) => CategoryChanged(newCategoryID)">
+        @foreach (var category in parts.Select(x => new
+                                        {
+                                            CatgegoryID = x.PartCategoryID,
+                                            CategoryName = x.CategoryName
+                                        })
+                                        .Distinct()
+                                        .ToList()
+        )
+        {
+            <MudSelectItem T="int?" Value="category.CatgegoryID">@category.CategoryName</MudSelectItem>
+        }
+    </MudSelect>
+    <MudSelect @bind-Value="selectedPart"
+               Variant="Variant.Outlined"
+               Placeholder="Select a Part..."
+               Disabled="@(categoryID == null || categoryID == 0)">
+        @foreach(var part in parts.Where(x => x.PartCategoryID == categoryID).ToList())
+        {
+            <MudSelectItem T="PartView" Value="part">@part.Description</MudSelectItem>
+        }
+    </MudSelect>
+</MudStack>

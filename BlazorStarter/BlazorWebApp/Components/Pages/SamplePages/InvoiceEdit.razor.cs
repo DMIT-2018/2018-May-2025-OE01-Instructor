@@ -9,6 +9,8 @@ namespace BlazorWebApp.Components.Pages.SamplePages
         #region Fields
         private InvoiceView invoice = new();
         private List<PartView> parts = [];
+        private int? categoryID;
+        private PartView? selectedPart;
 
         //Errors and Feedback
         private List<string> errorDetails = [];
@@ -57,6 +59,15 @@ namespace BlazorWebApp.Components.Pages.SamplePages
             {
                 // capture any exception message for display
                 errorMessage = ex.Message;
+            }
+        }
+
+        private void CategoryChanged(int? newCategoryID)
+        {
+            if(newCategoryID.HasValue)
+            {
+                categoryID = newCategoryID.Value;
+                selectedPart = null;
             }
         }
         #endregion
