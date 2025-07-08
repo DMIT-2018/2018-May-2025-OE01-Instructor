@@ -51,7 +51,10 @@
           Justify="Justify.FlexStart"
           Spacing="4">
     <MudSelect Variant="Variant.Outlined"
-               ValueChanged="(int? newCategoryID) => CategoryChanged(newCategoryID)">
+               Value="categoryID"
+               ValueChanged="(int? newCategoryID) => CategoryChanged(newCategoryID)"
+               Immediate
+               PlaceHolder="Select a Category...">
         @foreach (var category in parts.Select(x => new
                                         {
                                             CatgegoryID = x.PartCategoryID,
@@ -68,9 +71,56 @@
                Variant="Variant.Outlined"
                Placeholder="Select a Part..."
                Disabled="@(categoryID == null || categoryID == 0)">
-        @foreach(var part in parts.Where(x => x.PartCategoryID == categoryID).ToList())
+        @foreach(var part in parts.Where(x => x.PartCategoryID == categoryID && !invoice.InvoiceLines.Select(p => p.PartID).Contains(x.PartID)).ToList())
         {
-            <MudSelectItem T="PartView" Value="part">@part.Description</MudSelectItem>
+            <MudSelectItem T="PartView" Value="part">@part.Description (@part.QOH)</MudSelectItem>
         }
     </MudSelect>
+    <MudNumericField @bind-Value="quantity"
+                     Variant="Variant.Outlined"
+                     Min="0"
+                     Max="parts.Where(x => x.PartID == selectedPart?.PartID).FirstOrDefault()?.QOH ?? 0"
+                     Disabled="@(selectedPart == null)" />
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               Disabled="@(quantity <= 0)"
+               OnClick="AddPart">
+        Add Part       
+    </MudButton>
 </MudStack>
+<MudDataGrid Items="invoice.InvoiceLines"
+             Striped
+             Dense
+             Class="mt-2"
+             FixedFooter
+             FixedHeader
+             Height="23vh"
+             ReadOnly="false"
+             EditMode="DataGridEditMode.Cell"
+             EditTrigger="DataGridEditTrigger.OnRowClick">
+    <Columns>
+        <PropertyColumn Property="x => x.PartID" Title="Part ID" Editable="false" />
+        <PropertyColumn Property="x => x.Description" Title="Description" Editable="false" />
+        <PropertyColumn Property="x => x.Quantity" Title="QTO (Max QOH)" Editable="true">
+            <EditTemplate>
+                <MudNumericField Value="context.Item.Quantity"
+                                 ValueChanged="(int newQuantity) => QuantityEdited(context.Item, newQuantity)"
+                                 Immediate
+                                 Margin="Margin.Dense"
+                                 Min="0"
+                                 Max="@(parts.Where(x => x.PartID == context.Item.PartID).Select(x => x.QOH).FirstOrDefault())"/>
+            </EditTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.Price" Title="Price" Editable="true">
+            <EditTemplate>
+                <MudNumericField Value="context.Item.Price"
+                                 ValueChanged="(decimal newPrice) => PriceEdited(context.Item, newPrice)"
+                                 Immediate
+                                 Margin="Margin.Dense"
+                                 Min="0.00m"
+                                 Step="0.5m"/>
+            </EditTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.ExtentPrice" Title="Ext. Price" Editable="false" />
+    </Columns>         
+</MudDataGrid>

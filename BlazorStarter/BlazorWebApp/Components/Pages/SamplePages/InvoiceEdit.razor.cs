@@ -11,6 +11,7 @@ namespace BlazorWebApp.Components.Pages.SamplePages
         private List<PartView> parts = [];
         private int? categoryID;
         private PartView? selectedPart;
+        private int quantity;
 
         //Errors and Feedback
         private List<string> errorDetails = [];
@@ -64,11 +65,52 @@ namespace BlazorWebApp.Components.Pages.SamplePages
 
         private void CategoryChanged(int? newCategoryID)
         {
-            if(newCategoryID.HasValue)
+            categoryID = newCategoryID.HasValue ? newCategoryID.Value : null;
+            selectedPart = null;
+        }
+
+        private void AddPart()
+        {
+            if(selectedPart != null)
             {
-                categoryID = newCategoryID.Value;
+                InvoiceLineView newLine = new()
+                {
+                    PartID = selectedPart.PartID,
+                    Description = selectedPart.Description,
+                    Price = selectedPart.Price,
+                    Quantity = quantity,
+                    RemoveFromViewFlag = selectedPart.RemoveFromViewFlag,
+                    Taxable = selectedPart.Taxable,
+                };
+                invoice.InvoiceLines.Add(newLine);
+                //reset the values
+                categoryID = null;
                 selectedPart = null;
+                quantity = 0;
+                UpdateTotals();
             }
+            
+        }
+
+        private void QuantityEdited(InvoiceLineView changedLine, int quantity)
+        {
+            changedLine.Quantity = quantity;
+            UpdateTotals();
+        }
+        private void PriceEdited(InvoiceLineView changedLine, decimal price)
+        {
+            changedLine.Price = price;
+            UpdateTotals();
+        }
+
+        private void UpdateTotals()
+        {
+            invoice.SubTotal = invoice.InvoiceLines
+                                .Where(x => x.RemoveFromViewFlag == false)
+                                .Sum(x => x.Quantity * x.Price);
+            invoice.Tax = invoice.InvoiceLines
+                            .Where(x => x.RemoveFromViewFlag == false)
+                            .Sum(x => x.Taxable ? x.Quantity * x.Price * 0.05m : 0);
         }
         #endregion
     }
