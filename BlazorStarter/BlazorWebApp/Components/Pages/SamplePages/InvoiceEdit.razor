@@ -5,8 +5,29 @@
 <PageTitle>Invoice Edit</PageTitle>
 
 <MudText Typo="Typo.h3">
-    @(InvoiceID == 0 ? "New Invoice" : $"Invoice #: {InvoiceID}")
+    @(invoice.InvoiceID == 0 ? "New Invoice" : $"Invoice #: {invoice.InvoiceID}")
 </MudText>
+
+@if(hasError)
+{
+    <MudAlert Elevation="2"
+              Severity="Severity.Error"
+              Dense>
+        <MudText Typo="Typo.h6">@errorMessage</MudText>
+        @foreach(var error in errorDetails)
+        {
+            <MudText Typo="Typo.body2">@error</MudText>
+        }
+    </MudAlert>
+}
+@if (hasFeedback)
+{
+    <MudAlert Elevation="2"
+              Severity="Severity.Info"
+              Dense>
+        <MudText Typo="Typo.h6">@feedbackMessage</MudText>
+    </MudAlert>
+}
 
 <MudGrid>
     <MudItem sm="12" md="6">
@@ -48,7 +69,6 @@
 <MudStack Row
           Class="mt-2"
           AlignItems="AlignItems.Center"
-          Justify="Justify.FlexStart"
           Spacing="4">
     <MudSelect Variant="Variant.Outlined"
                Value="categoryID"
@@ -99,6 +119,16 @@
              EditMode="DataGridEditMode.Cell"
              EditTrigger="DataGridEditTrigger.OnRowClick">
     <Columns>
+        <TemplateColumn Editable="false">
+            <CellTemplate>
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Error"
+                           StartIcon="@Icons.Material.Filled.Delete"
+                           OnClick="@(() => DeleteInvoiceLine(context.Item))">
+                    Delete    
+                </MudButton>
+            </CellTemplate>
+        </TemplateColumn>
         <PropertyColumn Property="x => x.PartID" Title="Part ID" Editable="false" />
         <PropertyColumn Property="x => x.Description" Title="Description" Editable="false" />
         <PropertyColumn Property="x => x.Quantity" Title="QTO (Max QOH)" Editable="true">
@@ -118,9 +148,34 @@
                                  Immediate
                                  Margin="Margin.Dense"
                                  Min="0.00m"
-                                 Step="0.5m"/>
+                                 Step="0.5m"
+                                 Format="C2"/>
             </EditTemplate>
         </PropertyColumn>
-        <PropertyColumn Property="x => x.ExtentPrice" Title="Ext. Price" Editable="false" />
+        <PropertyColumn Property="x => x.ExtentPrice" Title="Ext. Price" Editable="false" Format="C2" />
+        <TemplateColumn Editable="false">
+            <CellTemplate>
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                               Size="Size.Small"
+                               OnClick="() => SyncPrice(context.Item)" />
+            </CellTemplate>
+        </TemplateColumn>
     </Columns>         
 </MudDataGrid>
+
+<!-- Save/Cancel Buttons -->
+<MudStack Class="mt-2"
+          Row
+          AlignItems="AlignItems.Center"
+          Justify="Justify.Center">
+    <MudButton Color="Color.Primary"
+               Variant="Variant.Filled"
+               OnClick="SaveInvoice">
+        Save       
+    </MudButton>
+    <MudButton Color="Color.Error"
+               Variant="Variant.Filled"
+               OnClick="Close">
+        Cancel/Close       
+    </MudButton>
+</MudStack>

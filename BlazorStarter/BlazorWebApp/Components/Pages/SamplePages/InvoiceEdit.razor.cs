@@ -1,6 +1,8 @@
 ﻿using HogWildSystem.BLL;
 using HogWildSystem.ViewModels;
 using Microsoft.AspNetCore.Components;
+using MudBlazor;
+using System.Threading.Tasks;
 
 namespace BlazorWebApp.Components.Pages.SamplePages
 {
@@ -17,6 +19,8 @@ namespace BlazorWebApp.Components.Pages.SamplePages
         private List<string> errorDetails = [];
         private string feedbackMessage = string.Empty;
         private string errorMessage = string.Empty;
+        private bool hasError => !string.IsNullOrWhiteSpace(errorMessage) || errorDetails.Any();
+        private bool hasFeedback => !string.IsNullOrWhiteSpace(feedbackMessage);
         #endregion
 
         #region Properties
@@ -24,6 +28,10 @@ namespace BlazorWebApp.Components.Pages.SamplePages
         protected InvoiceService InvoiceService { get; set; } = default!;
         [Inject]
         protected PartService PartService { get; set; } = default!;
+        [Inject]
+        protected IDialogService DialogService { get; set; } = default!;
+        [Inject]
+        protected NavigationManager NavigationManager { get; set; } = default!;
 
         //Page Parameters
         [Parameter]
@@ -101,6 +109,84 @@ namespace BlazorWebApp.Components.Pages.SamplePages
         {
             changedLine.Price = price;
             UpdateTotals();
+        }
+
+        private async Task DeleteInvoiceLine(InvoiceLineView invoiceLine)
+        {
+            bool? results = await DialogService.ShowMessageBox("Confirm Delete", $"Are you sure that you wish to remove {invoiceLine.Description} from the invoice?", yesText: "Delete", cancelText: "Cancel");
+            if(results == true)
+            {
+                invoice.InvoiceLines.Remove(invoiceLine);
+                UpdateTotals();
+            }
+        }
+
+        private void SyncPrice(InvoiceLineView invoiceLine)
+        {
+            //Find the original Price of the Part
+            decimal originalPrice = parts.Where(x => x.PartID == invoiceLine.PartID).Select(x => x.Price).FirstOrDefault();
+            invoiceLine.Price = originalPrice;
+            UpdateTotals();
+            //References vs Non Reference Example
+            //var otherReference = invoiceLine;
+            //otherReference.Price = 5.00m;
+            //var notAReference = new InvoiceLineView()
+            //{
+            //    Price = invoiceLine.Price,
+            //    Description = invoiceLine.Description,
+            //    PartID = invoiceLine.PartID,
+            //    InvoiceID = invoiceLine.InvoiceID,
+            //    InvoiceLineID = invoiceLine.InvoiceID,
+            //    Quantity = invoiceLine.Quantity,
+            //    RemoveFromViewFlag = invoiceLine.RemoveFromViewFlag,
+            //    Taxable = invoiceLine.Taxable
+            //};
+            //notAReference.Price = 10.00m;
+        }
+
+        private async Task Close()
+        {
+            bool? result = await DialogService.ShowMessageBox("Confirm Close/Cancel", "Do you want to close the invoice editor? All unsaved changes will be lost.",yesText:"Yes",noText:"No");
+
+            if(result == true)
+            {
+                NavigationManager.NavigateTo($"/SamplePages/CustomerEdit/{CustomerID}");
+            }
+        }
+
+        private async Task SaveInvoice()
+        {
+            // clear previous error details and messages
+            errorDetails.Clear();
+            errorMessage = string.Empty;
+            feedbackMessage = String.Empty;
+
+            //Used in feedback message
+            bool isNewInvoice = false;
+
+            try
+            {
+                var result = InvoiceService.AddEditInvoice(invoice);
+                if(result.IsSuccess)
+                {
+                    //check if the invoiceID was previously 0, if it was the invoice was new
+                    isNewInvoice = invoice.InvoiceID == 0;
+                    //update the invoice from the results
+                    invoice = result.Value ?? new();
+                    feedbackMessage = isNewInvoice
+                        ? $"New Invoice No {invoice.InvoiceID} was created!"
+                        : $"Invoice No {invoice.InvoiceID} was updated!";
+                    await InvokeAsync(StateHasChanged);
+                }
+                else
+                {
+                    errorDetails = BlazorHelperClass.GetErrorMessages(result.Errors.ToList());
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage = ex.Message;
+            }
         }
 
         private void UpdateTotals()
