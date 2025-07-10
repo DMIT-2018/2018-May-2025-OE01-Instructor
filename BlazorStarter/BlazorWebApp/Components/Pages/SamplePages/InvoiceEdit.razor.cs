@@ -32,6 +32,8 @@ namespace BlazorWebApp.Components.Pages.SamplePages
         protected IDialogService DialogService { get; set; } = default!;
         [Inject]
         protected NavigationManager NavigationManager { get; set; } = default!;
+        [Inject]
+        protected ISnackbar Snackbar { get; set; } = default!;
 
         //Page Parameters
         [Parameter]
@@ -186,6 +188,32 @@ namespace BlazorWebApp.Components.Pages.SamplePages
             catch (Exception ex)
             {
                 errorMessage = ex.Message;
+            }
+        }
+
+        private async Task DeleteInvoice()
+        {
+            bool? result = await DialogService.ShowMessageBox("Confirm Deletion", $"Are you sure you want to delete Invoice No {invoice.InvoiceID}?",yesText:"Yes",noText:"No");
+
+            if(result == true)
+            {
+                try
+                {
+                    var results = InvoiceService.DeleteInvoice(invoice.InvoiceID);
+                    if(results.IsSuccess)
+                    {
+                        Snackbar.Add($"Invoice {invoice.InvoiceID} was successful deleted.", severity: Severity.Success, config => { config.ShowCloseIcon = false; config.VisibleStateDuration = 7000; });
+                        NavigationManager.NavigateTo($"/SamplePages/CustomerEdit/{CustomerID}");
+                    }
+                    else
+                    {
+                        errorDetails = BlazorHelperClass.GetErrorMessages(results.Errors.ToList());
+                    }
+                }
+                catch (Exception ex)
+                {
+                    errorMessage = ex.Message;
+                }
             }
         }
 

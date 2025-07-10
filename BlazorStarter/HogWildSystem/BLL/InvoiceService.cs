@@ -297,6 +297,46 @@ namespace HogWildSystem.BLL
             }
 
             //MAKE SURE YOU ARE OUTSIDE THE FOREACH LOOP
+            //If the invoice is not new (an update)
+            //  Check if any lines were deleted
+            if (invoice.InvoiceID != 0)
+            {
+                //Get a list of all previous lines from the database invoice record
+                List<InvoiceLineView> referenceLines = _context.InvoiceLines
+                    .Where(x => x.InvoiceID == invoice.InvoiceID
+                            && x.RemoveFromViewFlag == false)
+                    .Select(i => new InvoiceLineView
+                    {
+                        InvoiceLineID = i.InvoiceLineID,
+                        InvoiceID = i.InvoiceID,
+                        PartID = i.PartID,
+                        Quantity = i.Quantity,
+                        Description = i.Part.Description,
+                        Price = i.Price,
+                        Taxable = i.Part.Taxable,
+                        RemoveFromViewFlag = i.RemoveFromViewFlag
+                    }).ToList();
+                foreach(var line in referenceLines)
+                {
+                    //check and see if the invoiceline exists on the supplied invoice
+                    if(!invoiceView.InvoiceLines.Any(x => x.InvoiceLineID == line.InvoiceLineID))
+                    {
+                        //Get the database record of the InvoiceLine
+                        InvoiceLine? deletedInvoiceLine = _context.InvoiceLines
+                            .Where(x => x.InvoiceLineID == line.InvoiceLineID)
+                            .FirstOrDefault();
+
+                        //Make sure we got it
+                        if (deletedInvoiceLine != null)
+                        {
+                            //Update the RemoveFromViewFlag to true
+                            deletedInvoiceLine.RemoveFromViewFlag = true;
+                            //Update the database record
+                            _context.InvoiceLines.Update(deletedInvoiceLine);
+                        }
+                    }
+                }
+            }
             //Check if the invoice is new or not
             if (invoice.InvoiceID == 0)
                 //If it is 0 then STAGE add the invoice to the database
@@ -327,6 +367,37 @@ namespace HogWildSystem.BLL
                 result.AddError(new Error("Error Saving Changes", ex.InnerException?.Message ?? ""));
                 return result;
             }
+        }
+
+        public Result<int> DeleteInvoice(int invoiceID)
+        {
+            var results = new Result<int>();
+            //rule: Invoice ID must be provided
+            if (invoiceID == 0)
+            {
+                results.AddError(new Error("Missing Information", "Please provide an invoice ID"));
+                return results;
+            }
+                
+
+            //Get the invoice from the database
+            Invoice? invoice = _context.Invoices
+                                    .Where(x => x.InvoiceID == invoiceID
+                                            && !x.RemoveFromViewFlag)
+                                    .FirstOrDefault();
+            //rule: Invoice must exist and not already be removed
+            if (invoice == null)
+            {
+                results.AddError(new Error("Missing Invoice", $"Invoice ID {invoiceID} does not exist in the system"));
+                return results;
+            }
+
+            //Update the RemoveFromViewFlag
+            invoice.RemoveFromViewFlag = true;
+            _context.Invoices.Update(invoice);
+
+            return results.WithValue(_context.SaveChanges());
+
         }
     }
 }
