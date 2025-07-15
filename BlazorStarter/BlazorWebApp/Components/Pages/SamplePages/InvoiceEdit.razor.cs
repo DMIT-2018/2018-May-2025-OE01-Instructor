@@ -19,8 +19,6 @@ namespace BlazorWebApp.Components.Pages.SamplePages
         private List<string> errorDetails = [];
         private string feedbackMessage = string.Empty;
         private string errorMessage = string.Empty;
-        private bool hasError => !string.IsNullOrWhiteSpace(errorMessage) || errorDetails.Any();
-        private bool hasFeedback => !string.IsNullOrWhiteSpace(feedbackMessage);
         #endregion
 
         #region Properties

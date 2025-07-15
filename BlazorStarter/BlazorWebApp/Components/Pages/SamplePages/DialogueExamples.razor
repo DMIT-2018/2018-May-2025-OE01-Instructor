@@ -1,0 +1,32 @@
+﻿@page "/SamplePages/DialogueExamples"
+
+<PageTitle>Dialogues</PageTitle>
+
+<MudText Typo="Typo.h3">Dialogue Examples</MudText>
+
+@if(!string.IsNullOrWhiteSpace(feedbackText))
+{
+    <MudAlert Elevation="2"
+              Severity="Severity.Normal"
+              Dense>
+        <MudText Typo="Typo.h6">@feedbackText</MudText>
+    </MudAlert>
+}
+
+<MudStack Row Justify="Justify.SpaceEvenly" AlignItems="AlignItems.Center">
+    <MudTextField Label="Button Text"
+                  Variant="Variant.Outlined"
+                  @bind-Value="buttonText" />
+    <MudSelect @bind-Value="buttonColour"
+               Variant="Variant.Outlined">
+        @foreach(Color? color in Enum.GetValues(typeof(Color)))
+        {
+            <MudSelectItem T="Color?" Value="@color">@color.ToString()</MudSelectItem>
+        }
+    </MudSelect>
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               OnClick="CustomDialogue">
+        Open Custom Dialogue       
+    </MudButton>
+</MudStack>

@@ -1,0 +1,21 @@
+﻿<!-- Always wrap the razor in a MudDialog -->
+<MudDialog>
+    <DialogContent>
+        <MudTextField Label="Enter a Message"
+                      @bind-Value="feedbackText"
+                      Immediate />
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Filled"
+                   Color=Color.Error
+                   OnClick="Cancel">
+            Cancel       
+        </MudButton>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled"
+                   Color="@ButtonColor"
+                   OnClick="Submit" >
+            @ButtonText       
+        </MudButton>
+    </DialogActions>
+</MudDialog>

@@ -2,6 +2,8 @@
 
 <PageTitle>Customers</PageTitle>
 
+<DMIT2018FeedbackAndErrorDisplay ErrorDetails="@errorDetails" ErrorMessage="@errorMessage" Feedback="@feedbackMessage" />
+
 <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Center">
     <MudText Typo="Typo.h5">Customer Search</MudText>
     <MudTextField @bind-Value="lastName"

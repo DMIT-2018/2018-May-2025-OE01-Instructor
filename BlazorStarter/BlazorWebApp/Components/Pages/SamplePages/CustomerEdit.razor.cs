@@ -16,8 +16,7 @@ namespace BlazorWebApp.Components.Pages.SamplePages
         private List<string> errorDetails = new();
         // general error message.
         private string errorMessage = string.Empty;
-        private bool hasError => !string.IsNullOrWhiteSpace(errorMessage) || errorDetails.Any();
-        private bool hasFeedback => !string.IsNullOrWhiteSpace(feedbackMessage);
+
         private List<LookupView> provinces = [];
         private List<LookupView> countries = [];
         private List<LookupView> customerStatuses = [];
@@ -58,34 +57,26 @@ namespace BlazorWebApp.Components.Pages.SamplePages
             errorDetails.Clear();
             errorMessage = string.Empty;
             feedbackMessage = string.Empty;
-
-            if (CustomerID > 0)
+            try
             {
-                try
+                var result = CustomerService.GetCustomer_ByID(CustomerID);
+                if (result.IsSuccess)
                 {
-                    var result = CustomerService.GetCustomer_ByID(CustomerID);
-                    if (result.IsSuccess)
-                    {
-                        customer = result.Value ?? new();
-                        var invoiceResults = InvoiceService.GetInvoices_ByCustomerID(CustomerID);
-                        if (invoiceResults.IsSuccess)
-                            invoices = invoiceResults.Value ?? [];
-                        else
-                            errorDetails = BlazorHelperClass.GetErrorMessages(result.Errors.ToList());
-                    }    
-                        
+                    customer = result.Value ?? new();
+                    var invoiceResults = InvoiceService.GetInvoices_ByCustomerID(CustomerID);
+                    if (invoiceResults.IsSuccess)
+                        invoices = invoiceResults.Value ?? [];
                     else
                         errorDetails = BlazorHelperClass.GetErrorMessages(result.Errors.ToList());
-                }
-                catch (Exception ex)
-                {
-                    // capture any exception message for display
-                    errorMessage = ex.Message;
-                }
+                }    
+                        
+                else
+                    errorDetails = BlazorHelperClass.GetErrorMessages(result.Errors.ToList());
             }
-            else
+            catch (Exception ex)
             {
-                customer = new();
+                // capture any exception message for display
+                errorMessage = ex.Message;
             }
 
             //Get Lookup Data

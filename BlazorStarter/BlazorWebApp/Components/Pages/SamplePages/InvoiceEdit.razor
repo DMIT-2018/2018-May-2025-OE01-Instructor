@@ -8,26 +8,7 @@
     @(invoice.InvoiceID == 0 ? "New Invoice" : $"Invoice #: {invoice.InvoiceID}")
 </MudText>
 
-@if(hasError)
-{
-    <MudAlert Elevation="2"
-              Severity="Severity.Error"
-              Dense>
-        <MudText Typo="Typo.h6">@errorMessage</MudText>
-        @foreach(var error in errorDetails)
-        {
-            <MudText Typo="Typo.body2">@error</MudText>
-        }
-    </MudAlert>
-}
-@if (hasFeedback)
-{
-    <MudAlert Elevation="2"
-              Severity="Severity.Info"
-              Dense>
-        <MudText Typo="Typo.h6">@feedbackMessage</MudText>
-    </MudAlert>
-}
+<DMIT2018FeedbackAndErrorDisplay ErrorDetails="@errorDetails" ErrorMessage="@errorMessage" Feedback="@feedbackMessage" />
 
 <MudGrid>
     <MudItem sm="12" md="6">

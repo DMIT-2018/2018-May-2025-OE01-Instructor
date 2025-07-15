@@ -8,6 +8,8 @@ namespace BlazorWebApp.Components.Pages.SamplePages
     {
         #region Fields
         private WorkingVersionView? workingVersionView;
+        private List<string> errorDetails = [];
+        private string feedbackMessage = string.Empty;
         private string errorMessage = string.Empty;
         #endregion
 
@@ -22,6 +24,7 @@ namespace BlazorWebApp.Components.Pages.SamplePages
             try
             {
                 workingVersionView = WorkingVersionService.GetWorkingVersion();
+                feedbackMessage = "Working Version retrieved";
             }
             catch (Exception ex)
             {

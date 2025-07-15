@@ -13,26 +13,8 @@ else
     <MudText Typo="Typo.h3">Edit Customer: @customer.FirstName @customer.LastName</MudText>
 }
 
-@if(hasError)
-{
-    <MudAlert Elevation="2"
-              Severity="Severity.Error"
-              Dense>
-        <MudText Typo="Typo.h6">@errorMessage</MudText>
-        @foreach(var error in errorDetails)
-        {
-            <MudText Typo="Typo.body2">@error</MudText>
-        }
-    </MudAlert>
-}
-@if (hasFeedback)
-{
-    <MudAlert Elevation="2"
-              Severity="Severity.Info"
-              Dense>
-        <MudText Typo="Typo.h6">@feedbackMessage</MudText>
-    </MudAlert>
-}
+<!-- Added using BlazorWebApp.Components.Custom to the global using file _Imports.razor -->
+<DMIT2018FeedbackAndErrorDisplay ErrorDetails="@errorDetails" ErrorMessage="@errorMessage" Feedback="@feedbackMessage" />
 
 <MudForm @ref="customerForm" @bind-IsValid="isFormValid" @bind-IsTouched="hasDataChanged">
     <!--
