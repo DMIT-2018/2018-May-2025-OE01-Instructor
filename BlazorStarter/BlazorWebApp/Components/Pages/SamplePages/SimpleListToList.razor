@@ -1,0 +1,67 @@
+﻿@page "/SamplePages/SimpleListToList"
+
+<PageTitle>List To List</PageTitle>
+<MudText Typo="Typo.h3">Simple List to List</MudText>
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudText Typo="Typo.h5">Available Inventory</MudText>
+        <MudTable Items="inventory.Where(x => !shoppingCart.Select(p => p.PartID).Contains(x.PartID))"
+                  Dense
+                  Striped
+                  FixedFooter
+                  FixedHeader
+                  Height="65vh">
+            <HeaderContent>
+                <MudTh>Category</MudTh>
+                <MudTh>Description</MudTh>
+                <MudTh>Price</MudTh>
+                <MudTh>Action</MudTh>
+            </HeaderContent>
+            <!-- Context tells the Mud Table what we will refer to each record as. -->
+            <RowTemplate Context="item">
+                <MudTd DataLabel="Category">@item.CategoryName</MudTd>
+                <MudTd DataLabel="Description">@item.Description</MudTd>
+                <MudTd DataLabel="Price">@item.Price.ToString("C2")</MudTd>
+                <MudTd>
+                    <MudIconButton Color="Color.Primary"
+                                   OnClick="() => AddPartToCart(item)"
+                                   Icon="@Icons.Material.Filled.AddShoppingCart" />
+
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new int[] {15,17,20,25,30}"
+                               HorizontalAlignment="HorizontalAlignment.Center"/>
+            </PagerContent>
+        </MudTable>
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudText Typo="Typo.h5">Shopping Cart</MudText>
+        <MudTable Items="shoppingCart"
+                  Dense
+                  Striped
+                  FixedFooter
+                  FixedHeader
+                  Height="65vh">
+            <HeaderContent>
+                <MudTh>Description</MudTh>
+                <MudTh>Price</MudTh>
+                <MudTh>Action</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="item">
+                <MudTd DataLabel="Description">@item.Description</MudTd>
+                <MudTd DataLabel="Price">@item.Price.ToString("C2")</MudTd>
+                <MudTd>
+                    <MudIconButton Color="Color.Primary"
+                                   OnClick="() => RemovePartFromCart(item)"
+                                   Icon="@Icons.Material.Filled.RemoveShoppingCart" />
+
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new int[] { 15, 17, 20, 25, 30 }"
+                               HorizontalAlignment="HorizontalAlignment.Center" />
+            </PagerContent>
+        </MudTable>
+    </MudItem>
+</MudGrid>
